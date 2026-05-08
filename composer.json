@@ -1,0 +1,10 @@
+{
+    "require": {
+        "allsecure-pay/php-exchange": "^3.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}

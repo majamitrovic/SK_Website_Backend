@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment successful</title>
+    <link rel="stylesheet" href="/assets/checkout.css">
+</head>
+<body>
+    <main class="single-panel result success">
+        <h1>Payment successful</h1>
+        <p id="result-line"></p>
+        <a id="status-link" class="button-link" href="/status.html">View status</a>
+    </main>
+    <script>
+        const tx = new URLSearchParams(window.location.search).get('merchant_transaction_id') || '';
+        document.getElementById('result-line').textContent = tx ? 'Transaction: ' + tx : '';
+        if (tx) document.getElementById('status-link').href = '/status.html?merchant_transaction_id=' + encodeURIComponent(tx);
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recurring schedule</title>
+    <link rel="stylesheet" href="/assets/checkout.css">
+    <script src="/config.js"></script>
+</head>
+<body>
+    <main class="single-panel">
+        <h1>Recurring schedule</h1>
+        <form id="schedule-form" class="status-form">
+            <label>
+                <span>Schedule ID</span>
+                <input id="schedule_id" name="schedule_id">
+            </label>
+            <button type="submit">Show</button>
+        </form>
+        <output id="schedule-output" class="status" role="status"></output>
+        <dl id="schedule-list" class="status-list"></dl>
+
+        <form id="schedule-actions" class="schedule-actions">
+            <input type="hidden" id="action_schedule_id" name="schedule_id">
+            <label>
+                <span>Continue date/time</span>
+                <input id="continue_datetime" name="continue_datetime" type="datetime-local">
+            </label>
+            <div class="action-row">
+                <button name="action" value="pause" type="submit">Pause</button>
+                <button name="action" value="continue" type="submit">Continue</button>
+                <button name="action" value="cancel" type="submit">Cancel</button>
+            </div>
+        </form>
+    </main>
+    <script src="/assets/schedule.js"></script>
+</body>
+</html>

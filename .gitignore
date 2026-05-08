@@ -1,0 +1,6 @@
+.env
+/vendor/
+storage/*.jsonl
+storage/*.log
+storage/*.pem
+server*.log
