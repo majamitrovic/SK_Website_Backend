@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potvrda periodi??nog pla??anja</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .header { background: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: white; padding: 20px; border-radius: 0 0 5px 5px; }
+        .badge { 
+            display: inline-block; 
+            background: #2196F3; 
+            color: white; 
+            padding: 8px 15px; 
+            border-radius: 3px; 
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .details { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-left: 4px solid #2196F3; 
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .section-title { font-weight: bold; color: #1976D2; margin-top: 15px; margin-bottom: 10px; }
+        .detail-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #ddd; 
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-weight: bold; }
+        .footer { 
+            background: #f0f0f0; 
+            padding: 15px; 
+            text-align: center; 
+            font-size: 12px; 
+            color: #666; 
+            margin-top: 20px; 
+            border-radius: 3px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Potvrda periodi??nog pla??anja</h1>
+        </div>
+        
+        <div class="content">
+            <p>Po??tovani/a <?= $firstName ?> <?= $lastName ?>,</p>
+            
+            <p>Va?? raspored periodi??nog pla??anja je uspe??no kreiran. Va??a pretplata je sada aktivna.</p>
+            
+            <div class="badge">??? Raspored je aktivan</div>
+            
+            <div class="section-title">Po??etno pla??anje:</div>
+            <div class="details">
+                <div class="detail-row">
+                    <span class="detail-label">Referentni broj porud??bine:</span>
+                    <span><?= $merchantTransactionId ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Napla??en iznos i valuta:</span>
+                    <span><strong><?= $amount ?> <?= $currency ?></strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Autorizacioni kod banke:</span>
+                    <span><code><?= $bankAuthCode ?></code></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Datum i vreme:</span>
+                    <span><?= $transactionDate ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span>??? Uspe??no obrada</span>
+                </div>
+            </div>
+            
+            <div class="section-title">Detalji periodi??nog pla??anja:</div>
+            <div class="details">
+                <div class="detail-row">
+                    <span class="detail-label">Broj rasporeda:</span>
+                    <span><code><?= $scheduleId ?></code></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Periodi??ni iznos:</span>
+                    <span><strong><?= $recurringAmount ?> <?= $currency ?></strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">U??estalost:</span>
+                    <span>Svakih <?= $recurringPeriodLength ?> <?= $recurringPeriodUnit ?></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status rasporeda:</span>
+                    <span>??? <?= $scheduleStatus ?></span>
+                </div>
+            </div>
+            
+            <p>Bi??e vam napla??en periodi??ni iznos svakih <?= $recurringPeriodLength ?> <?= $recurringPeriodUnit ?> prema dogovorenom rasporedu. Mo??ete upravljati svojom pretplatom u bilo kom trenutku kontaktom sa nama.</p>
+            
+            <p>Ako ??elite da pauzom, izmenite, ili otka??e va??a periodi??na pla??anja, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>.</p>
+            
+            <p>Hvala vam na va??oj pretplati!</p>
+            
+            <p>Srda??ni pozdrav,<br>Tim <?= $companyName ?></p>
+        </div>
+        
+        <div class="footer">
+            <p>Ovo je automatizovana e-po??ta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomo??, kontaktirajte <?= $supportEmail ?></p>
+            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadr??ana.</p>
+        </div>
+    </div>
+</body>
+</html>
