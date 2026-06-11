@@ -30,7 +30,7 @@ $defaultRecurringStart = (new DateTime('+25 hours'))->format('Y-m-d\TH:i');
     <main class="checkout-shell">
         <section class="summary-panel" aria-labelledby="summary-title">
             <p class="eyebrow">Secure checkout</p>
-            <h1 id="summary-title">Complete your payment</h1>
+            <h1 id="summary-title">Complete your payment V2</h1>
             <dl>
                 <div>
                     <dt>Gateway</dt>
