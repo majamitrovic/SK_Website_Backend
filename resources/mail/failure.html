@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pla??anje neuspe??no</title>
+    <title>Plaćanje neuspešno</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
@@ -63,43 +63,43 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Pla??anje neuspe??no</h1>
+            <h1>Plaćanje neuspešno</h1>
         </div>
         
         <div class="content">
-            <p>Po??tovani/a <?= $firstName ?> <?= $lastName ?>,</p>
+            <p>Poštovani/a <?= $firstName ?> <?= $lastName ?>,</p>
             
-            <p>Na??alost, va??e pla??anje nije moglo biti obrada. Molimo vas da pregledate detalje ispod i poku??ate ponovo.</p>
+            <p>Nažalost, vaše plaćanje nije moglo biti obrađeno. Molimo vas da pregledate detalje ispod i pokušate ponovo.</p>
             
             <!-- C1: Transaction Status -->
-            <div class="status-badge">??? Pla??anje je neuspe??no - NEUSPE??NO</div>
+            <div class="status-badge">✗ Plaćanje je neuspešno - NEUSPEŠNO</div>
             
             <!-- C2: Transaction Details Section -->
             <div class="compliance-section">
-                <div class="compliance-title">Detalji poku??aja transakcije:</div>
+                <div class="compliance-title">Detalji pokušaja transakcije:</div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Referentni broj porud??bine:</span>
+                    <span class="detail-label">Referentni broj porudžbine:</span>
                     <span class="detail-value"><code><?= $merchantTransactionId ?></code></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Poku??an iznos i valuta:</span>
+                    <span class="detail-label">Pokušan iznos i valuta:</span>
                     <span class="detail-value"><strong><?= $amount ?> <?= $currency ?></strong></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Opis pla??anja:</span>
+                    <span class="detail-label">Opis plaćanja:</span>
                     <span class="detail-value"><?= $description ?></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Metod pla??anja:</span>
+                    <span class="detail-label">Metod plaćanja:</span>
                     <span class="detail-value"><?= $paymentMethod ?></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Datum i vreme poku??aja:</span>
+                    <span class="detail-label">Datum i vreme pokušaja:</span>
                     <span class="detail-value"><?= $transactionDate ?></span>
                 </div>
             </div>
@@ -110,23 +110,23 @@
                 <p><?= $errors ?></p>
             </div>
             
-            <h3>??ta mo??ete uraditi:</h3>
+            <h3>Šta možete uraditi:</h3>
             <ul>
-                <li>Proverite da su podaci sa kartice ispravno unetih</li>
-                <li>Uverite se da va??a kartica ima dovoljna sredstva</li>
-                <li>Proverite da va??a adresa naplate odgovara podacima kartice</li>
-                <li>Kontaktirajte va??u banku ako verujete da je odbijanje gre??ke</li>
-                <li>Poku??ajte ponovo sa drugom karticom</li>
+                <li>Proverite da su podaci sa kartice ispravno uneti</li>
+                <li>Uverite se da vaša kartica ima dovoljna sredstva</li>
+                <li>Proverite da vaša adresa naplate odgovara podacima kartice</li>
+                <li>Kontaktirajte vašu banku ako verujete da je odbijanje greška</li>
+                <li>Pokušajte ponovo sa drugom karticom</li>
             </ul>
             
-            <p>Ako nastavite da do??ivljavate probleme, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>. Evo nam da vam pomognemo!</p>
+            <p>Ako nastavite da doživljavate probleme, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>. Evo nam da vam pomognemo!</p>
             
-            <p>Srda??ni pozdrav,<br>Tim <?= $companyName ?></p>
+            <p>Srdan pozdrav,<br>Tim <?= $companyName ?></p>
         </div>
         
         <div class="footer">
-            <p>Ovo je automatizovana e-po??ta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomo??, kontaktirajte <?= $supportEmail ?></p>
-            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadr??ana.</p>
+            <p>Ovo je automatizovana e-pošta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomoć, kontaktirajte <?= $supportEmail ?></p>
+            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadržana.</p>
         </div>
     </div>
 </body>

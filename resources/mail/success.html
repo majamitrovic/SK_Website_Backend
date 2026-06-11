@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Potvrda pla??anja</title>
+    <title>Potvrda plaćanja</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
@@ -55,38 +55,38 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Potvrda pla??anja</h1>
+            <h1>Potvrda plaćanja</h1>
         </div>
         
         <div class="content">
-            <p>Po??tovani/a <?= $firstName ?> <?= $lastName ?>,</p>
+            <p>Poštovani/a <?= $firstName ?> <?= $lastName ?>,</p>
             
-            <p>Hvala na va??oj uplati. Potvr??ujemo da je va??a transakcija uspe??no obrada.</p>
+            <p>Hvala na vašoj uplati. Potvrđujemo da je vaša transakcija uspešno obrađena.</p>
             
             <!-- C1: Transaction Status -->
-            <div class="status-badge">??? Pla??anje je uspe??no - USPE??NO</div>
+            <div class="status-badge">✓ Plaćanje je uspešno - USPEŠNO</div>
             
             <!-- C2: Transaction Details Section -->
             <div class="compliance-section">
-                <div class="compliance-title">Detalji transakcije kod uspe??nog pla??anja:</div>
+                <div class="compliance-title">Detalji transakcije kod uspešnog plaćanja:</div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Referentni broj porud??bine:</span>
+                    <span class="detail-label">Referentni broj porudžbine:</span>
                     <span class="detail-value"><code><?= $merchantTransactionId ?></code></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Napla??en iznos i valuta:</span>
+                    <span class="detail-label">Naplaćen iznos i valuta:</span>
                     <span class="detail-value"><strong><?= $amount ?> <?= $currency ?></strong></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Opis pla??anja:</span>
+                    <span class="detail-label">Opis plaćanja:</span>
                     <span class="detail-value"><?= $description ?></span>
                 </div>
                 
                 <div class="detail-row">
-                    <span class="detail-label">Metod pla??anja:</span>
+                    <span class="detail-label">Metod plaćanja:</span>
                     <span class="detail-value"><?= $paymentMethod ?></span>
                 </div>
                 
@@ -101,18 +101,18 @@
                 </div>
             </div>
             
-            <p><strong>Napomena:</strong> Ova e-po??ta predstavlja va??u slu??benu potvrdu pla??anja. Molimo vas da je sa??uvate za svoje evidencije.</p>
+            <p><strong>Napomena:</strong> Ova e-pošta predstavlja vašu službenu potvrdu plaćanja. Molimo vas da je sačuvate za svoje evidencije.</p>
             
             <p>Ako imate bilo koja pitanja u vezi ove transakcije, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>.</p>
             
-            <p>Hvala ??to ste nam dali povodu da vas uslu??imo!</p>
+            <p>Hvala što ste nam dali povoda da vas uslužimo!</p>
             
-            <p>Srda??ni pozdrav,<br>Tim <?= $companyName ?></p>
+            <p>Srdan pozdrav,<br>Tim <?= $companyName ?></p>
         </div>
         
         <div class="footer">
-            <p>Ovo je automatizovana e-po??ta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomo??, kontaktirajte <?= $supportEmail ?></p>
-            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadr??ana.</p>
+            <p>Ovo je automatizovana e-pošta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomoć, kontaktirajte <?= $supportEmail ?></p>
+            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadržana.</p>
         </div>
     </div>
 </body>
