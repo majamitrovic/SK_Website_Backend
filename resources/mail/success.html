@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potvrda plaćanja</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background: white; padding: 20px; border-radius: 0 0 5px 5px; }
+        .status-badge { 
+            display: inline-block; 
+            background: #4CAF50; 
+            color: white; 
+            padding: 8px 15px; 
+            border-radius: 3px; 
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .compliance-section { 
+            background: #f0f8ff; 
+            padding: 15px; 
+            border-left: 4px solid #0066cc; 
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .compliance-title {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        .detail-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 10px 0; 
+            border-bottom: 1px solid #ddd; 
+            line-height: 1.8;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-weight: bold; min-width: 200px; }
+        .detail-value { text-align: right; }
+        .footer { 
+            background: #f0f0f0; 
+            padding: 15px; 
+            text-align: center; 
+            font-size: 12px; 
+            color: #666; 
+            margin-top: 20px; 
+            border-radius: 3px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Potvrda plaćanja</h1>
+        </div>
+        
+        <div class="content">
+            <p>Poštovani/a <?= $firstName ?> <?= $lastName ?>,</p>
+            
+            <p>Hvala na vašoj uplati. Potvrđujemo da je vaša transakcija uspešno obrađena.</p>
+            
+            <!-- C1: Transaction Status -->
+            <div class="status-badge">✓ Plaćanje je uspešno - USPEŠNO</div>
+            
+            <!-- C2: Transaction Details Section -->
+            <div class="compliance-section">
+                <div class="compliance-title">Detalji transakcije kod uspešnog plaćanja:</div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Referentni broj porudžbine:</span>
+                    <span class="detail-value"><code><?= $merchantTransactionId ?></code></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Naplaćen iznos i valuta:</span>
+                    <span class="detail-value"><strong><?= $amount ?> <?= $currency ?></strong></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Opis plaćanja:</span>
+                    <span class="detail-value"><?= $description ?></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Metod plaćanja:</span>
+                    <span class="detail-value"><?= $paymentMethod ?></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Autorizacioni kod banke:</span>
+                    <span class="detail-value"><code><?= $bankAuthCode ?></code></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Datum i vreme transakcije:</span>
+                    <span class="detail-value"><?= $transactionDate ?></span>
+                </div>
+            </div>
+            
+            <p><strong>Napomena:</strong> Ova e-pošta predstavlja vašu službenu potvrdu plaćanja. Molimo vas da je sačuvate za svoje evidencije.</p>
+            
+            <p>Ako imate bilo koja pitanja u vezi ove transakcije, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>.</p>
+            
+            <p>Hvala što ste nam dali povoda da vas uslužimo!</p>
+            
+            <p>Srdan pozdrav,<br>Tim <?= $companyName ?></p>
+        </div>
+        
+        <div class="footer">
+            <p>Ovo je automatizovana e-pošta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomoć, kontaktirajte <?= $supportEmail ?></p>
+            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadržana.</p>
+        </div>
+    </div>
+</body>
+</html>

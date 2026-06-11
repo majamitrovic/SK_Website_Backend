@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Callback Notification</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; border: 1px solid #ccc; padding: 20px; background: #f9f9f9; }
+        .header { background: #333; color: white; padding: 15px; border-radius: 3px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f0f0f0; font-weight: bold; }
+        pre { background: #f5f5f5; padding: 15px; overflow-x: auto; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Payment Callback Received</h2>
+            <p>Timestamp: <?php echo date('Y-m-d H:i:s'); ?></p>
+        </div>
+        
+        <table>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>Merchant Transaction ID</td>
+                <td><?= isset($merchantTransactionId) ? $merchantTransactionId : 'N/A' ?></td>
+            </tr>
+            <tr>
+                <td>Result</td>
+                <td><?= isset($result) ? $result : 'N/A' ?></td>
+            </tr>
+            <tr>
+                <td>Amount</td>
+                <td><?= isset($amount) ? $amount : 'N/A' ?></td>
+            </tr>
+            <tr>
+                <td>Currency</td>
+                <td><?= isset($currency) ? $currency : 'N/A' ?></td>
+            </tr>
+            <tr>
+                <td>Schedule ID</td>
+                <td><?= isset($scheduleId) ? $scheduleId : 'N/A' ?></td>
+            </tr>
+            <tr>
+                <td>Schedule Status</td>
+                <td><?= isset($scheduleStatus) ? $scheduleStatus : 'N/A' ?></td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
