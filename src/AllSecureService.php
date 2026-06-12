@@ -192,6 +192,26 @@ final class AllSecureService
 
     public static function callbackResultToArray($callback)
     {
+        $scheduleId = null;
+        $scheduleStatus = null;
+        
+        // Only call getScheduleId/getScheduleStatus if they exist and callback is for recurring payment
+        try {
+            if (method_exists($callback, 'getScheduleId')) {
+                $scheduleId = $callback->getScheduleId();
+            }
+        } catch (Throwable $e) {
+            // Schedule ID not available (non-recurring payment)
+        }
+        
+        try {
+            if (method_exists($callback, 'getScheduleStatus')) {
+                $scheduleStatus = $callback->getScheduleStatus();
+            }
+        } catch (Throwable $e) {
+            // Schedule status not available (non-recurring payment)
+        }
+        
         return array(
             'result' => $callback->getResult(),
             'uuid' => $callback->getUuid(),
@@ -201,8 +221,8 @@ final class AllSecureService
             'paymentMethod' => $callback->getPaymentMethod(),
             'amount' => $callback->getAmount(),
             'currency' => $callback->getCurrency(),
-            'scheduleId' => $callback->getScheduleId(),
-            'scheduleStatus' => $callback->getScheduleStatus(),
+            'scheduleId' => $scheduleId,
+            'scheduleStatus' => $scheduleStatus,
             'errorMessage' => $callback->getErrorMessage(),
             'errorCode' => $callback->getErrorCode(),
             'adapterMessage' => $callback->getAdapterMessage(),

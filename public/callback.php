@@ -6,6 +6,7 @@ use App\AllSecureService;
 use App\Config;
 use App\PaymentStorage;
 use App\Logger;
+use App\EmailService;
 
 header('Content-Type: text/plain; charset=utf-8');
 
@@ -57,20 +58,118 @@ try {
     $callbackData = AllSecureService::callbackResultToArray($callback);
     PaymentStorage::append('callbacks.jsonl', $callbackData);
 
+    // Get callback details
+    $callbackResult = $callback->getResult();
+    $scheduleId = null;
+    $scheduleStatus = null;
+    
+    try {
+        if (method_exists($callback, 'getScheduleId')) {
+            $scheduleId = $callback->getScheduleId();
+        }
+    } catch (Throwable $e) {
+        // Schedule ID not available
+    }
+    
+    try {
+        if (method_exists($callback, 'getScheduleStatus')) {
+            $scheduleStatus = $callback->getScheduleStatus();
+        }
+    } catch (Throwable $e) {
+        // Schedule status not available
+    }
+
     // Log successful callback
     if (Config::bool('ENABLE_LOGGING')) {
         Logger::logPaymentStatus(
             $callback->getMerchantTransactionId(),
-            $callback->getResult(),
+            $callbackResult,
             array(
                 'type' => 'callback',
                 'uuid' => $callback->getUuid(),
                 'purchase_id' => $callback->getPurchaseId(),
                 'transaction_type' => $callback->getTransactionType(),
-                'schedule_id' => $callback->getScheduleId(),
-                'schedule_status' => $callback->getScheduleStatus(),
+                'schedule_id' => $scheduleId,
+                'schedule_status' => $scheduleStatus,
             )
         );
+    }
+
+    // Send emails based on callback result
+    try {
+        // Prepare payment data from callback
+        $paymentData = array(
+            'id' => $callback->getMerchantTransactionId(),
+            'email' => $callback->getMerchantTransactionId(), // You may need to get this from your database
+            'amount' => $callback->getAmount(),
+            'currency' => $callback->getCurrency(),
+            'transaction_type' => $callback->getTransactionType(),
+        );
+
+        if ($callbackResult === 'confirmed') {
+            // Payment was successful - send confirmation email
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logTransaction(array(
+                    'type' => 'email_trigger',
+                    'trigger' => 'payment_confirmed',
+                    'transaction_id' => $callback->getMerchantTransactionId(),
+                    'message' => 'Attempting to send payment success email',
+                ));
+            }
+            EmailService::sendPaymentSuccess($paymentData, $callbackData);
+            
+            // If recurring, send schedule confirmation
+            if (!empty($scheduleId)) {
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logTransaction(array(
+                        'type' => 'email_trigger',
+                        'trigger' => 'schedule_created',
+                        'transaction_id' => $callback->getMerchantTransactionId(),
+                        'schedule_id' => $scheduleId,
+                        'message' => 'Attempting to send schedule confirmation email',
+                    ));
+                }
+                EmailService::sendScheduleConfirmation($paymentData, $callbackData);
+            }
+        } elseif ($callbackResult === 'failed' || $callbackResult === 'error') {
+            // Payment failed - send failure email
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logTransaction(array(
+                    'type' => 'email_trigger',
+                    'trigger' => 'payment_failed',
+                    'transaction_id' => $callback->getMerchantTransactionId(),
+                    'result' => $callbackResult,
+                    'message' => 'Attempting to send payment failure email',
+                ));
+            }
+            EmailService::sendPaymentFailure($paymentData, $callbackData);
+        }
+
+        // Always send admin notification
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logTransaction(array(
+                'type' => 'email_trigger',
+                'trigger' => 'admin_notification',
+                'transaction_id' => $callback->getMerchantTransactionId(),
+                'message' => 'Attempting to send admin callback notification',
+            ));
+        }
+        EmailService::sendCallbackNotification($callbackData);
+        
+    } catch (Throwable $emailException) {
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logError(
+                'Error sending emails during callback: ' . $emailException->getMessage(),
+                array(
+                    'transaction_id' => $callback->getMerchantTransactionId(),
+                    'exception' => get_class($emailException),
+                    'file' => $emailException->getFile(),
+                    'line' => $emailException->getLine(),
+                    'trace' => $emailException->getTraceAsString(),
+                ),
+                'warning'
+            );
+        }
     }
 
     http_response_code(200);
