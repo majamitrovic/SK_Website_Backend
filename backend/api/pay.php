@@ -32,6 +32,7 @@ try {
         'scheduleStatus' => $payment['result']['scheduleStatus'],
         'paymentMethod' => $payment['result']['paymentMethod'],
         'errorCount' => count($payment['result']['errors']),
+        'customer_email' => $input['email'] ?? null,
     ));
 
     // Log successful transaction
