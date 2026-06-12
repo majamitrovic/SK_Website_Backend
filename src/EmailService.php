@@ -267,18 +267,183 @@ final class EmailService
      */
     private static function sendViaSMTP($to, $subject, $body)
     {
-        // Requires PHP with SMTP/IMAP extensions or PHPMailer library
-        // This is a placeholder - implement based on your SMTP library preference
-        
         $host = Config::get('MAIL_SMTP_HOST');
         $port = Config::get('MAIL_SMTP_PORT', 587);
         $username = Config::get('MAIL_SMTP_USERNAME');
         $password = Config::get('MAIL_SMTP_PASSWORD');
         $encryption = Config::get('MAIL_SMTP_ENCRYPTION', 'tls');
+        $from = Config::get('MAIL_FROM_ADDRESS', 'noreply@example.com');
+        $fromName = Config::get('MAIL_FROM_NAME', 'Payment System');
         
-        // TODO: Implement SMTP sending using PHPMailer or similar
-        // For now, fall back to PHP mail
-        return self::sendViaPhpMail($to, $subject, $body);
+        if (!$host || !$username || !$password) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    'SMTP configuration incomplete',
+                    [
+                        'has_host' => !empty($host),
+                        'has_username' => !empty($username),
+                        'has_password' => !empty($password),
+                    ],
+                    'warning'
+                );
+            }
+            return false;
+        }
+        
+        try {
+            // Prepare SSL context
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                ]
+            ]);
+            
+            // Determine socket protocol based on encryption
+            if ($encryption === 'ssl') {
+                $socketAddr = "ssl://{$host}:{$port}";
+            } else {
+                $socketAddr = "tcp://{$host}:{$port}";
+            }
+            
+            // Connect to SMTP server
+            $socket = @stream_socket_client(
+                $socketAddr,
+                $errno,
+                $errstr,
+                10,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+            
+            if (!$socket) {
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logError(
+                        "SMTP connection failed: {$errstr}",
+                        [
+                            'host' => $host,
+                            'port' => $port,
+                            'errno' => $errno,
+                            'errstr' => $errstr,
+                        ],
+                        'warning'
+                    );
+                }
+                return false;
+            }
+            
+            // Set stream blocking mode
+            stream_set_blocking($socket, true);
+            
+            // Read SMTP greeting
+            $response = fgets($socket, 515);
+            if (strpos($response, '220') === false) {
+                fclose($socket);
+                return false;
+            }
+            
+            // EHLO command
+            fwrite($socket, "EHLO localhost\r\n");
+            self::readSMTPResponse($socket);
+            
+            // STARTTLS if needed (upgrade connection to TLS)
+            if ($encryption === 'tls') {
+                fwrite($socket, "STARTTLS\r\n");
+                $response = fgets($socket, 515);
+                if (strpos($response, '220') !== false) {
+                    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                }
+            }
+            
+            // AUTH LOGIN
+            fwrite($socket, "AUTH LOGIN\r\n");
+            fgets($socket, 515);
+            
+            // Send username (base64 encoded)
+            fwrite($socket, base64_encode($username) . "\r\n");
+            fgets($socket, 515);
+            
+            // Send password (base64 encoded)
+            fwrite($socket, base64_encode($password) . "\r\n");
+            $response = fgets($socket, 515);
+            
+            if (strpos($response, '235') === false && strpos($response, '250') === false) {
+                fclose($socket);
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logError(
+                        'SMTP authentication failed',
+                        [
+                            'response' => trim($response),
+                            'host' => $host,
+                        ],
+                        'warning'
+                    );
+                }
+                return false;
+            }
+            
+            // MAIL FROM
+            fwrite($socket, "MAIL FROM:<{$from}>\r\n");
+            fgets($socket, 515);
+            
+            // RCPT TO
+            fwrite($socket, "RCPT TO:<{$to}>\r\n");
+            fgets($socket, 515);
+            
+            // DATA
+            fwrite($socket, "DATA\r\n");
+            fgets($socket, 515);
+            
+            // Build email headers
+            $headers = "From: {$fromName} <{$from}>\r\n";
+            $headers .= "To: {$to}\r\n";
+            $headers .= "Subject: {$subject}\r\n";
+            $headers .= "Reply-To: {$from}\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "X-Mailer: SK Website Payment System\r\n";
+            
+            // Write email
+            fwrite($socket, $headers . "\r\n" . $body . "\r\n.\r\n");
+            $response = fgets($socket, 515);
+            
+            // QUIT
+            fwrite($socket, "QUIT\r\n");
+            fclose($socket);
+            
+            return strpos($response, '250') !== false;
+            
+        } catch (Throwable $e) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    'SMTP sending exception: ' . $e->getMessage(),
+                    [
+                        'host' => $host,
+                        'exception' => get_class($e),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ],
+                    'warning'
+                );
+            }
+            return false;
+        }
+    }
+    
+    /**
+     * Read SMTP response (may be multi-line)
+     */
+    private static function readSMTPResponse($socket)
+    {
+        $response = '';
+        while ($line = fgets($socket, 515)) {
+            $response .= $line;
+            if (substr($line, 3, 1) === ' ') {
+                break;
+            }
+        }
+        return $response;
     }
 
     /**
