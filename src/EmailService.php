@@ -167,16 +167,32 @@ final class EmailService
                 ], $context));
             }
 
-            // Log failed send
+            // Log failed send with detailed error information
             if (!$result && Config::bool('ENABLE_LOGGING')) {
+                $lastError = error_get_last();
+                $errorDetails = array_merge($context, [
+                    'email_type' => $emailType,
+                    'recipient' => $to,
+                    'subject' => $subject,
+                    'method' => $smtpHost ? 'smtp' : 'php_mail',
+                ]);
+                
+                // Add PHP error details if available
+                if ($lastError) {
+                    $errorDetails['php_error_type'] = $lastError['type'];
+                    $errorDetails['php_error_message'] = $lastError['message'];
+                    $errorDetails['php_error_file'] = $lastError['file'];
+                    $errorDetails['php_error_line'] = $lastError['line'];
+                }
+                
+                // Add mail configuration for debugging
+                $errorDetails['mail_from'] = Config::get('MAIL_FROM_ADDRESS');
+                $errorDetails['mail_host'] = $smtpHost ? $smtpHost : 'localhost (sendmail)';
+                $errorDetails['mail_driver'] = Config::get('MAIL_DRIVER', 'default');
+                
                 Logger::logError(
-                    "Failed to send {$emailType} email to {$to}",
-                    array_merge($context, [
-                        'email_type' => $emailType,
-                        'recipient' => $to,
-                        'subject' => $subject,
-                        'method' => $smtpHost ? 'smtp' : 'php_mail',
-                    ]),
+                    "Failed to send {$emailType} email to {$to}" . ($lastError ? " - {$lastError['message']}" : ''),
+                    $errorDetails,
                     'error'
                 );
             }
@@ -217,7 +233,33 @@ final class EmailService
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
         $headers .= "X-Mailer: SK Website Payment System\r\n";
         
-        return @mail($to, $subject, $body, $headers);
+        // Clear any previous errors
+        error_clear_last();
+        
+        // Try to send email (don't suppress errors so we can capture them)
+        $result = mail($to, $subject, $body, $headers);
+        
+        // If failed and logging enabled, capture the error details
+        if (!$result && Config::bool('ENABLE_LOGGING')) {
+            $lastError = error_get_last();
+            if ($lastError && Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    "PHP mail() function failed: {$lastError['message']}",
+                    [
+                        'recipient' => $to,
+                        'subject' => $subject,
+                        'from' => $from,
+                        'php_error_type' => $lastError['type'],
+                        'php_error_message' => $lastError['message'],
+                        'php_error_file' => $lastError['file'],
+                        'php_error_line' => $lastError['line'],
+                    ],
+                    'warning'
+                );
+            }
+        }
+        
+        return $result;
     }
 
     /**

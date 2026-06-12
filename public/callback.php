@@ -97,52 +97,81 @@ try {
 
     // Send emails based on callback result
     try {
+        // Get customer email from transaction records
+        $merchantTransactionId = $callback->getMerchantTransactionId();
+        $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
+        
         // Prepare payment data from callback
         $paymentData = array(
-            'id' => $callback->getMerchantTransactionId(),
-            'email' => $callback->getMerchantTransactionId(), // You may need to get this from your database
+            'id' => $merchantTransactionId,
+            'email' => $customerEmail,
             'amount' => $callback->getAmount(),
             'currency' => $callback->getCurrency(),
             'transaction_type' => $callback->getTransactionType(),
         );
 
         if ($callbackResult === 'confirmed') {
-            // Payment was successful - send confirmation email
+            // Payment was successful - send confirmation email to customer
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logTransaction(array(
                     'type' => 'email_trigger',
                     'trigger' => 'payment_confirmed',
-                    'transaction_id' => $callback->getMerchantTransactionId(),
+                    'transaction_id' => $merchantTransactionId,
+                    'customer_email' => $customerEmail,
                     'message' => 'Attempting to send payment success email',
                 ));
             }
-            EmailService::sendPaymentSuccess($paymentData, $callbackData);
+            
+            if ($customerEmail) {
+                EmailService::sendPaymentSuccess($paymentData, $callbackData);
+            } else {
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logError(
+                        'Cannot send payment success email - customer email not found',
+                        array('transaction_id' => $merchantTransactionId),
+                        'warning'
+                    );
+                }
+            }
             
             // If recurring, send schedule confirmation
-            if (!empty($scheduleId)) {
+            if (!empty($scheduleId) && $customerEmail) {
                 if (Config::bool('ENABLE_LOGGING')) {
                     Logger::logTransaction(array(
                         'type' => 'email_trigger',
                         'trigger' => 'schedule_created',
-                        'transaction_id' => $callback->getMerchantTransactionId(),
+                        'transaction_id' => $merchantTransactionId,
                         'schedule_id' => $scheduleId,
+                        'customer_email' => $customerEmail,
                         'message' => 'Attempting to send schedule confirmation email',
                     ));
                 }
                 EmailService::sendScheduleConfirmation($paymentData, $callbackData);
             }
         } elseif ($callbackResult === 'failed' || $callbackResult === 'error') {
-            // Payment failed - send failure email
+            // Payment failed - send failure email to customer
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logTransaction(array(
                     'type' => 'email_trigger',
                     'trigger' => 'payment_failed',
-                    'transaction_id' => $callback->getMerchantTransactionId(),
+                    'transaction_id' => $merchantTransactionId,
+                    'customer_email' => $customerEmail,
                     'result' => $callbackResult,
                     'message' => 'Attempting to send payment failure email',
                 ));
             }
-            EmailService::sendPaymentFailure($paymentData, $callbackData);
+            
+            if ($customerEmail) {
+                EmailService::sendPaymentFailure($paymentData, $callbackData);
+            } else {
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logError(
+                        'Cannot send payment failure email - customer email not found',
+                        array('transaction_id' => $merchantTransactionId),
+                        'warning'
+                    );
+                }
+            }
         }
 
         // Always send admin notification
@@ -150,7 +179,7 @@ try {
             Logger::logTransaction(array(
                 'type' => 'email_trigger',
                 'trigger' => 'admin_notification',
-                'transaction_id' => $callback->getMerchantTransactionId(),
+                'transaction_id' => $merchantTransactionId,
                 'message' => 'Attempting to send admin callback notification',
             ));
         }
@@ -174,6 +203,52 @@ try {
 
     http_response_code(200);
     echo 'OK';
+}
+
+/**
+ * Helper function to get customer email from transaction records
+ */
+function getCustomerEmailFromTransaction($merchantTransactionId) {
+    try {
+        $transactionFile = dirname(__DIR__) . '/storage/transactions.jsonl';
+        
+        if (!file_exists($transactionFile)) {
+            return null;
+        }
+        
+        $file = fopen($transactionFile, 'r');
+        if (!$file) {
+            return null;
+        }
+        
+        while (($line = fgets($file)) !== false) {
+            $record = json_decode(trim($line), true);
+            
+            if (is_array($record) && ($record['merchantTransactionId'] ?? null) === $merchantTransactionId) {
+                fclose($file);
+                return $record['customer_email'] ?? null;
+            }
+        }
+        
+        fclose($file);
+        return null;
+        
+    } catch (Throwable $e) {
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logError(
+                'Error reading customer email from transactions: ' . $e->getMessage(),
+                array(
+                    'transaction_id' => $merchantTransactionId,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ),
+                'warning'
+            );
+        }
+        return null;
+    }
+}
+
 } catch (Throwable $exception) {
     PaymentStorage::append('callback_errors.jsonl', array(
         'exception' => get_class($exception),
