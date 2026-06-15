@@ -31,8 +31,11 @@ try {
         'scheduleId' => $payment['result']['scheduleId'],
         'scheduleStatus' => $payment['result']['scheduleStatus'],
         'paymentMethod' => $payment['result']['paymentMethod'],
+        'cardLastFourDigits' => $payment['result']['cardLastFourDigits'],
+        'authCode' => $payment['result']['authCode'],
         'errorCount' => count($payment['result']['errors']),
         'customer_email' => $input['email'] ?? null,
+        'timestamp' => date('Y-m-d H:i:s'),
     ));
 
     // Log successful transaction
@@ -40,14 +43,17 @@ try {
         Logger::logTransaction(array(
             'type' => 'debit_request',
             'transaction_id' => $payment['merchantTransactionId'],
+            'timestamp' => date('Y-m-d H:i:s'),
             'amount' => $payment['amount'],
             'currency' => $payment['currency'],
             'customer_email' => $input['email'] ?? null,
             'success' => $payment['result']['success'],
             'uuid' => $payment['result']['uuid'],
             'purchase_id' => $payment['result']['purchaseId'],
-            'schedule_id' => $payment['result']['scheduleId'],
             'payment_method' => $payment['result']['paymentMethod'],
+            'card_last_four' => $payment['result']['cardLastFourDigits'],
+            'auth_code' => $payment['result']['authCode'],
+            'schedule_id' => $payment['result']['scheduleId'],
             'error_count' => count($payment['result']['errors']),
             'errors' => !empty($payment['result']['errors']) ? implode(', ', array_map(function($e) { return $e['code'] . ': ' . $e['message']; }, $payment['result']['errors'])) : null,
         ));

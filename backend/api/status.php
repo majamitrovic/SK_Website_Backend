@@ -23,9 +23,13 @@ try {
         Logger::logTransaction(array(
             'type' => 'status_query',
             'transaction_id' => $merchantTransactionId,
-            'payment_status' => $status['result'] ?? null,
+            'payment_status' => $status['transactionStatus'] ?? null,
             'uuid' => $status['uuid'] ?? null,
             'success' => $status['success'] ?? false,
+            'payment_method' => $status['paymentMethod'] ?? null,
+            'card_last_four' => $status['cardLastFourDigits'] ?? null,
+            'auth_code' => $status['authCode'] ?? null,
+            'timestamp' => date('Y-m-d H:i:s'),
         ));
     }
 
