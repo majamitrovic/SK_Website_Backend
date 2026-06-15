@@ -225,16 +225,13 @@ final class AllSecureService
         
         return array(
             'success' => $result->isSuccess(),
-            'result' => $result->getResult(),
             'returnType' => $result->getReturnType(),
             'uuid' => $result->getUuid(),
-            'merchantTransactionId' => $result->getMerchantTransactionId(),
             'purchaseId' => $result->getPurchaseId(),
             'transactionType' => method_exists($result, 'getTransactionType') ? $result->getTransactionType() : null,
             'paymentMethod' => $result->getPaymentMethod(),
             'amount' => method_exists($result, 'getAmount') ? $result->getAmount() : null,
             'currency' => method_exists($result, 'getCurrency') ? $result->getCurrency() : null,
-            'merchantMetaData' => $result->getMerchantMetaData(),
             'card' => $cardData,
             'threeDSecure' => $threeDSecure,
             'eci' => $eci,
@@ -246,9 +243,6 @@ final class AllSecureService
             'scheduleId' => $result->getScheduleId(),
             'scheduleStatus' => $result->getScheduleStatus(),
             'scheduledAt' => $result->getScheduledAt(),
-            'errorMessage' => $result->getErrorMessage(),
-            'errorCode' => $result->getErrorCode(),
-            'adapterMessage' => $result->getAdapterMessage(),
             'adapterCode' => $result->getAdapterCode(),
             'errors' => self::errorsToArray($result->getErrors()),
         );
