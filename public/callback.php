@@ -11,12 +11,27 @@ use App\EmailService;
 // Log callback attempt immediately
 $callbackStartTime = microtime(true);
 $requestId = bin2hex(random_bytes(8));
-error_log("[CALLBACK-$requestId] START: " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI']);
+
+if (Config::bool('ENABLE_LOGGING')) {
+    Logger::logTransaction(array(
+        'type' => 'callback_received',
+        'request_id' => $requestId,
+        'method' => $_SERVER['REQUEST_METHOD'],
+        'uri' => $_SERVER['REQUEST_URI'],
+        'timestamp' => date('Y-m-d H:i:s'),
+    ));
+}
 
 header('Content-Type: text/plain; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    error_log("[CALLBACK-$requestId] ERROR: Not a POST request, method=" . $_SERVER['REQUEST_METHOD']);
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logError(
+            'Callback rejected: not a POST request',
+            array('request_id' => $requestId, 'method' => $_SERVER['REQUEST_METHOD']),
+            'warning'
+        );
+    }
     http_response_code(405);
     echo 'METHOD_NOT_ALLOWED';
     exit;
@@ -25,19 +40,30 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $body = file_get_contents('php://input');
 $bodyLength = strlen($body);
 
-error_log("[CALLBACK-$requestId] Body length: $bodyLength bytes");
+if (Config::bool('ENABLE_LOGGING')) {
+    Logger::logTransaction(array(
+        'type' => 'callback_body_received',
+        'request_id' => $requestId,
+        'body_length' => $bodyLength,
+        'timestamp' => date('Y-m-d H:i:s'),
+    ));
+}
 
 if ($bodyLength === 0) {
-    error_log("[CALLBACK-$requestId] ERROR: Empty request body");
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logError(
+            'Callback rejected: empty request body',
+            array('request_id' => $requestId),
+            'warning'
+        );
+    }
     http_response_code(400);
     echo 'EMPTY_BODY';
     exit;
 }
 
 try {
-    error_log("[CALLBACK-$requestId] Creating AllSecureService...");
     $service = new AllSecureService();
-    error_log("[CALLBACK-$requestId] AllSecureService created successfully");
 
     $dateHeader = $_SERVER['HTTP_DATE'] ?? $_SERVER['HTTP_X_DATE'] ?? null;
     $signature = $_SERVER['HTTP_X_SIGNATURE']
@@ -47,15 +73,19 @@ try {
         ?? null;
     $requestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/callback.php';
 
-    error_log("[CALLBACK-$requestId] Date header: " . ($dateHeader ? 'present' : 'missing'));
-    error_log("[CALLBACK-$requestId] Signature: " . ($signature ? 'present' : 'missing'));
-    error_log("[CALLBACK-$requestId] Request URI: $requestUri");
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logTransaction(array(
+            'type' => 'callback_headers_check',
+            'request_id' => $requestId,
+            'has_date_header' => !empty($dateHeader),
+            'has_signature' => !empty($signature),
+            'request_uri' => $requestUri,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ));
+    }
 
     if (Config::bool('ALLSECURE_VALIDATE_CALLBACKS', true)) {
-        error_log("[CALLBACK-$requestId] Validating callback signature...");
-        
         if (!$dateHeader || !$signature) {
-            error_log("[CALLBACK-$requestId] ERROR: Missing date header or signature");
             PaymentStorage::append('callback_rejections.jsonl', array(
                 'reason' => 'missing_headers',
                 'has_date' => !empty($dateHeader),
@@ -83,7 +113,6 @@ try {
         }
 
         if (!$service->validateCallback($body, $requestUri, $dateHeader, $signature)) {
-            error_log("[CALLBACK-$requestId] ERROR: Signature validation failed");
             PaymentStorage::append('callback_rejections.jsonl', array(
                 'reason' => 'invalid_signature',
                 'requestUri' => $requestUri,
@@ -108,26 +137,16 @@ try {
             echo 'INVALID_SIGNATURE';
             exit;
         }
-        error_log("[CALLBACK-$requestId] Signature validation passed");
-    } else {
-        error_log("[CALLBACK-$requestId] Callback validation disabled");
     }
 
-    error_log("[CALLBACK-$requestId] Reading callback data...");
     $callback = $service->readCallback($body);
-    error_log("[CALLBACK-$requestId] Callback data read successfully");
-    
     $callbackData = AllSecureService::callbackResultToArray($callback);
-    error_log("[CALLBACK-$requestId] Callback converted to array");
     
     PaymentStorage::append('callbacks.jsonl', $callbackData);
-    error_log("[CALLBACK-$requestId] Callback stored to callbacks.jsonl");
 
     // Get callback details
     $callbackResult = $callback->getResult();
     $merchantTransactionId = $callback->getMerchantTransactionId();
-    
-    error_log("[CALLBACK-$requestId] Callback result: $callbackResult, Transaction ID: $merchantTransactionId");
     
     // Log the callback result
     if (Config::bool('ENABLE_LOGGING')) {
@@ -153,22 +172,39 @@ try {
     $scheduleStatus = null;
     
     try {
-        error_log("[CALLBACK-$requestId] Extracting schedule information...");
         if (method_exists($callback, 'getScheduleId')) {
             $scheduleId = $callback->getScheduleId();
-            error_log("[CALLBACK-$requestId] Schedule ID: " . ($scheduleId ?: 'none'));
         }
     } catch (Throwable $e) {
-        error_log("[CALLBACK-$requestId] Error getting schedule ID: " . $e->getMessage());
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logError(
+                'Error getting schedule ID from callback',
+                array(
+                    'request_id' => $requestId,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ),
+                'warning'
+            );
+        }
     }
     
     try {
         if (method_exists($callback, 'getScheduleStatus')) {
             $scheduleStatus = $callback->getScheduleStatus();
-            error_log("[CALLBACK-$requestId] Schedule status: " . ($scheduleStatus ?: 'none'));
         }
     } catch (Throwable $e) {
-        error_log("[CALLBACK-$requestId] Error getting schedule status: " . $e->getMessage());
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logError(
+                'Error getting schedule status from callback',
+                array(
+                    'request_id' => $requestId,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ),
+                'warning'
+            );
+        }
     }
 
     // Log successful callback
@@ -195,12 +231,9 @@ try {
     }
 
     // Send emails based on callback result
-    error_log("[CALLBACK-$requestId] Processing email notifications...");
     try {
         // Get customer email from transaction records
-        error_log("[CALLBACK-$requestId] Looking up customer email for transaction: $merchantTransactionId");
         $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
-        error_log("[CALLBACK-$requestId] Customer email: " . ($customerEmail ?: 'NOT FOUND'));
         
         // Prepare payment data from callback
         $paymentData = array(
@@ -212,7 +245,6 @@ try {
         );
 
         if ($callbackResult === 'confirmed') {
-            error_log("[CALLBACK-$requestId] Callback result is CONFIRMED - processing success emails");
             
             // Payment was successful - send confirmation email to customer
             if (Config::bool('ENABLE_LOGGING')) {
@@ -227,11 +259,8 @@ try {
             }
             
             if ($customerEmail) {
-                error_log("[CALLBACK-$requestId] Sending payment success email to: $customerEmail");
                 EmailService::sendPaymentSuccess($paymentData, $callbackData);
-                error_log("[CALLBACK-$requestId] Payment success email sent");
             } else {
-                error_log("[CALLBACK-$requestId] WARNING: No customer email found, skipping success email");
                 if (Config::bool('ENABLE_LOGGING')) {
                     Logger::logError(
                         'Cannot send payment success email - customer email not found',
@@ -246,7 +275,6 @@ try {
             
             // If recurring, send schedule confirmation
             if (!empty($scheduleId)) {
-                error_log("[CALLBACK-$requestId] Schedule ID present ($scheduleId), checking if should send schedule confirmation");
                 if ($customerEmail) {
                     if (Config::bool('ENABLE_LOGGING')) {
                         Logger::logTransaction(array(
@@ -259,17 +287,10 @@ try {
                             'request_id' => $requestId,
                         ));
                     }
-                    error_log("[CALLBACK-$requestId] Sending schedule confirmation email to: $customerEmail");
                     EmailService::sendScheduleConfirmation($paymentData, $callbackData);
-                    error_log("[CALLBACK-$requestId] Schedule confirmation email sent");
-                } else {
-                    error_log("[CALLBACK-$requestId] No customer email for schedule confirmation");
                 }
-            } else {
-                error_log("[CALLBACK-$requestId] No schedule ID, skipping schedule confirmation email");
             }
         } elseif ($callbackResult === 'failed' || $callbackResult === 'error') {
-            error_log("[CALLBACK-$requestId] Callback result is $callbackResult - processing failure emails");
             
             // Payment failed - send failure email to customer
             if (Config::bool('ENABLE_LOGGING')) {
@@ -285,11 +306,8 @@ try {
             }
             
             if ($customerEmail) {
-                error_log("[CALLBACK-$requestId] Sending payment failure email to: $customerEmail");
                 EmailService::sendPaymentFailure($paymentData, $callbackData);
-                error_log("[CALLBACK-$requestId] Payment failure email sent");
             } else {
-                error_log("[CALLBACK-$requestId] WARNING: No customer email found, skipping failure email");
                 if (Config::bool('ENABLE_LOGGING')) {
                     Logger::logError(
                         'Cannot send payment failure email - customer email not found',
@@ -297,17 +315,11 @@ try {
                             'transaction_id' => $merchantTransactionId,
                             'result' => $callbackResult,
                             'request_id' => $requestId,
-                        ),
-                        'warning'
-                    );
-                }
+                        )
             }
-        } else {
-            error_log("[CALLBACK-$requestId] Unknown callback result: $callbackResult - no emails sent");
         }
 
         // Always send admin notification
-        error_log("[CALLBACK-$requestId] Sending admin notification");
         if (Config::bool('ENABLE_LOGGING')) {
             Logger::logTransaction(array(
                 'type' => 'email_trigger',
@@ -319,10 +331,8 @@ try {
             ));
         }
         EmailService::sendCallbackNotification($callbackData);
-        error_log("[CALLBACK-$requestId] Admin notification sent");
         
     } catch (Throwable $emailException) {
-        error_log("[CALLBACK-$requestId] ERROR sending emails: " . get_class($emailException) . " - " . $emailException->getMessage());
         
         if (Config::bool('ENABLE_LOGGING')) {
             Logger::logError(
@@ -341,7 +351,16 @@ try {
     }
 
     $callbackDuration = microtime(true) - $callbackStartTime;
-    error_log("[CALLBACK-$requestId] SUCCESS: Callback processed in " . round($callbackDuration * 1000, 2) . "ms");
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logTransaction(array(
+            'type' => 'callback_processed',
+            'request_id' => $requestId,
+            'transaction_id' => $merchantTransactionId,
+            'result' => $callbackResult,
+            'duration_ms' => round($callbackDuration * 1000, 2),
+            'timestamp' => date('Y-m-d H:i:s'),
+        ));
+    }
     http_response_code(200);
     echo 'OK';
 }
@@ -350,20 +369,22 @@ try {
  * Helper function to get customer email from transaction records
  */
 function getCustomerEmailFromTransaction($merchantTransactionId) {
-    global $requestId;
-    
     try {
         $transactionFile = dirname(__DIR__) . '/storage/transactions.jsonl';
         
         if (!file_exists($transactionFile)) {
-            error_log("[CALLBACK-$requestId] Transaction file not found: $transactionFile");
             return null;
         }
         
-        error_log("[CALLBACK-$requestId] Reading transaction file: $transactionFile");
         $file = fopen($transactionFile, 'r');
         if (!$file) {
-            error_log("[CALLBACK-$requestId] ERROR: Cannot open transaction file for reading");
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    'Cannot open transaction file for reading customer email',
+                    array('file' => $transactionFile),
+                    'warning'
+                );
+            }
             return null;
         }
         
@@ -379,24 +400,31 @@ function getCustomerEmailFromTransaction($merchantTransactionId) {
             $record = json_decode($trimmed, true);
             
             if (!is_array($record)) {
-                error_log("[CALLBACK-$requestId] Line $lineNum: Invalid JSON in transaction file");
                 continue;
             }
             
             if (($record['merchantTransactionId'] ?? null) === $merchantTransactionId) {
                 $email = $record['customer_email'] ?? null;
-                error_log("[CALLBACK-$requestId] Found transaction at line $lineNum, email: " . ($email ?: 'null'));
                 fclose($file);
                 return $email;
             }
         }
         
-        error_log("[CALLBACK-$requestId] Transaction ID not found in file after $lineNum lines");
         fclose($file);
         return null;
         
     } catch (Throwable $e) {
-        error_log("[CALLBACK-$requestId] ERROR reading customer email: " . get_class($e) . " - " . $e->getMessage());
+        if (Config::bool('ENABLE_LOGGING')) {
+            Logger::logError(
+                'Error reading customer email from transaction file',
+                array(
+                    'transaction_id' => $merchantTransactionId,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ),
+                'error'
+            );
+        }
         
         if (Config::bool('ENABLE_LOGGING')) {
             Logger::logError(
@@ -405,7 +433,6 @@ function getCustomerEmailFromTransaction($merchantTransactionId) {
                     'transaction_id' => $merchantTransactionId,
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
-                    'request_id' => $requestId,
                 ),
                 'warning'
             );
@@ -415,11 +442,6 @@ function getCustomerEmailFromTransaction($merchantTransactionId) {
 }
 
 } catch (Throwable $exception) {
-    error_log("[CALLBACK-$requestId] FATAL ERROR: " . get_class($exception) . " - " . $exception->getMessage());
-    error_log("[CALLBACK-$requestId] File: " . $exception->getFile() . ":" . $exception->getLine());
-    error_log("[CALLBACK-$requestId] Trace: " . $exception->getTraceAsString());
-    error_log("[CALLBACK-$requestId] Body length: $bodyLength bytes");
-    
     PaymentStorage::append('callback_errors.jsonl', array(
         'exception' => get_class($exception),
         'message' => $exception->getMessage(),
@@ -447,7 +469,6 @@ function getCustomerEmailFromTransaction($merchantTransactionId) {
     }
 
     $callbackDuration = microtime(true) - $callbackStartTime;
-    error_log("[CALLBACK-$requestId] FAILED after " . round($callbackDuration * 1000, 2) . "ms");
 
     http_response_code(500);
     echo 'ERROR';
