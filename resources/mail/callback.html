@@ -28,7 +28,7 @@
         <div class="content">
             <p>Callback for transaction <code><?= $merchantTransactionId ?></code> was received.</p>
             
-            <div class="status-badge">Status: <?= htmlspecialchars($result ?? $paymentStatus ?? 'unknown') ?></div>
+            <div class="status-badge">Status: <?= htmlspecialchars($paymentStatus ?? 'unknown') ?></div>
             
             <div class="compliance-section">
                 <div class="compliance-title">Callback details</div>
