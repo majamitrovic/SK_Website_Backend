@@ -206,6 +206,8 @@ Logger::logTransaction([
                             [
                                 'transaction_id' => $merchantTransactionId,
                                 'request_id' => $requestId,
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine()
                             ],
                             'error'
                         );
@@ -240,6 +242,8 @@ Logger::logTransaction([
                 [
                     'transaction_id' => $merchantTransactionId,
                     'request_id' => $requestId,
+                    'file' => $emailException->getFile(),
+                    'line' => $emailException->getLine()
                 ],
                 'warning'
             );

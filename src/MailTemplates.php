@@ -179,7 +179,13 @@ final class MailTemplates
         if (!empty($result['scheduledData'])) {
             $data['scheduleId'] = htmlspecialchars($result['scheduledData']['scheduleId'] ?? '');
             $data['scheduleStatus'] = htmlspecialchars($result['scheduledData']['scheduleStatus'] ?? '');
-            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt']['date'] ?? '');
+            $data['scheduledAt'] = htmlspecialchars(
+                isset($result['scheduledData']['scheduledAt'])
+                    ? $result['scheduledData']['scheduledAt']
+                    ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
+                    ->format('Y-m-d H:i:s')
+                    : ''
+            );
         }
 
         // Add callback data if provided

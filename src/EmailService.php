@@ -69,7 +69,7 @@ final class EmailService
     public static function sendScheduleConfirmation(array $payment, array $result)
     {
         $to = $payment['email'] ?? '';
-        if (!$to || !($result['scheduleId'] ?? null)) {
+        if (!$to || !($result['scheduledData']['scheduleId'] ?? null)) {
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logError(
                     'Schedule confirmation email not sent - missing email or schedule ID',
@@ -90,7 +90,7 @@ final class EmailService
         $sent = self::send($to, $subject, $body, 'schedule_confirmation', [
             'payment_id' => $payment['id'] ?? null,
             'customer_email' => $to,
-            'schedule_id' => $result['scheduleId'] ?? null,
+            'schedule_id' => $result['scheduledData']['scheduleId'] ?? null,
             'amount' => $payment['amount'] ?? null,
         ]);
 
