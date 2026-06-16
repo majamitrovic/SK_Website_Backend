@@ -279,6 +279,9 @@ final class AllSecureService
             }
         }
         
+        $scheduleData = method_exists($result, 'getScheduleData')
+        ? $result->getScheduleData()
+        : null;
         return array(
             'success' => $result->isSuccess(),
             'returnType' => $result->getReturnType(),
@@ -296,10 +299,9 @@ final class AllSecureService
             'redirectType' => $result->getRedirectType(),
             'redirectUrl' => $result->getRedirectUrl(),
             'htmlContent' => $result->getHtmlContent(),
-            'scheduleId' => $result->getScheduleId(),
-            'scheduleStatus' => $result->getScheduleStatus(),
-            'scheduledAt' => $result->getScheduledAt(),
-            'adapterCode' => $result->getAdapterCode(),
+            'scheduleId' => $scheduleData ? ($scheduleData->getScheduleId() ?? null) : null,
+            'scheduleStatus' => $scheduleData ? ($scheduleData->getScheduleStatus() ?? null) : null,
+            'scheduledAt' => $scheduleData ? ($scheduleData->getScheduledAt() ?? null) : null,
             'errors' => self::errorsToArray($result->getErrors()),
         );
     }

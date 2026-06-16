@@ -168,13 +168,30 @@ try {
         $paymentData['cancelLink'] = Config::baseUrl() . '/cancel_subscription.php?token=' . urlencode($token);
     }
 
+    if (Config::bool('ENABLE_LOGGING')) {
+Logger::logTransaction([
+'type' => 'callback_parsed',
+'request_id' => $requestId,
+'merchantTransactionId' => $merchantTransactionId,
+'result' => $callbackResult,
+'scheduleId' => $scheduleId,
+'scheduleStatus' => $scheduleStatus,
+'uuid' => $callbackData['uuid'] ?? null,
+'amount' => $callbackData['amount'] ?? null,
+'currency' => $callbackData['currency'] ?? null,
+'card_type' => $callbackData['card']['type'] ?? null,
+'card_last4' => $callbackData['card']['lastFourDigits'] ?? $callbackData['card']['lastFour'] ?? null,
+'raw_callback' => $callbackData, // remove or shorten in production if sensitive
+'timestamp' => date('Y-m-d H:i:s'),
+]);
+}
     try {
         // Decide single customer email type per callback
         $emailType = null;
-        if ($callbackResult === 'confirmed') {
+        if ($callbackResult === 'ok') {
             $emailType = $scheduleId ? 'schedule_confirmation' : 'payment_success';
         } elseif (in_array($callbackResult, ['failed', 'error'], true)) {
-            $emailType = $scheduleId ? 'schedule_failure' : 'payment_failure';
+            $emailType = 'payment_failure';
         }
 
         if ($customerEmail && $emailType) {
