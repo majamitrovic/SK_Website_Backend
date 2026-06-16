@@ -88,30 +88,31 @@
         <div class="content">
             <p>Poštovani/a <?= $firstName ?> <?= $lastName ?>,</p>
             
-            <p>Vaš raspored periodičnog plaćanja je uspešno kreiran. Vaša pretplata je sada aktivna.</p>
+            <p>Vaše periodično plaćanje je uspešno kreirano. Vaša pretplata je sada aktivna.</p>
             
             <div class="badge">✓ Raspored je aktivan</div>
             
             <div class="section-title">Početno plaćanje:</div>
             <div class="details">
                 <div class="detail-row">
-                    <span class="detail-label">Referentni broj porudžbine:</span>
+                    <span class="detail-label">Broj transakcije:</span>
                     <span><?= $merchantTransactionId ?></span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Naplaćen iznos i valuta:</span>
                     <span><strong><?= $amount ?> <?= $currency ?></strong></span>
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Autorizacioni kod banke:</span>
-                    <span><code><?= $bankAuthCode ?></code></span>
-                </div>
+               
                   <div class="detail-row">
                     <span class="detail-label">Tip kartice:</span>
                     <span><code><?= $cardType ?> ****<?= $lastFour ?></code></span>
                 </div>
+                 <div class="detail-row">
+                    <span class="detail-label">Autorizacioni kod banke:</span>
+                    <span><code><?= $authCode ?></code></span>
+                </div>
                 <div class="detail-row">
-                    <span class="detail-label">Datum i vreme:</span>
+                    <span class="detail-label">Datum i vreme transakcije:</span>
                     <span><?= $transactionDate ?></span>
                 </div>
                 <div class="detail-row">
@@ -120,19 +121,15 @@
                 </div>
             </div>
             
-            <div class="section-title">Detalji periodičnog plaćanja:</div>
+            <div class="section-title">Detalji:</div>
             <div class="details">
                 <div class="detail-row">
                     <span class="detail-label">Broj rasporeda:</span>
                     <span><code><?= $scheduleId ?></code></span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Periodični iznos:</span>
-                    <span><strong><?= $recurringAmount ?> <?= $currency ?></strong></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Učestalost:</span>
-                    <span>Svakih <?= $recurringPeriodLength ?> <?= $recurringPeriodUnit ?></span>
+                    <span class="detail-label">Datum zakazane transakcije:</span>
+                    <span><?= $scheduledAt ?></span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Status rasporeda:</span>
@@ -140,23 +137,15 @@
                 </div>
             </div>
             
-            <p>Biće vam naplaćen periodični iznos svakih <?= $recurringPeriodLength ?> <?= $recurringPeriodUnit ?> prema dogovorenom rasporedu.</p>
-            
             <div class="action-section">
                 <p style="margin-top: 0;"><strong>Upravljanje svojom pretplatom:</strong></p>
-                <a href="<?= $managementUrl ?>" class="manage-btn">Upravljaj pretplatom</a>
-                <a href="<?= $cancelUrl ?>" class="cancel-btn">Otkaži pretplatu</a>
+                <a href="<?= $cancelLink ?>" class="cancel-btn">Otkaži pretplatu</a>
                 <p style="margin-bottom: 0; font-size: 12px; color: #666;">Ako imate pitanja, kontaktirajte nas na <strong><?= $supportEmail ?></strong></p>
             </div>
             
             <p>Hvala vam na vašoj pretplati!</p>
             
-            <p>Srdan pozdrav,<br>Tim <?= $companyName ?></p>
-        </div>
-        
-        <div class="footer">
-            <p>Ovo je automatizovana e-pošta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomoć, kontaktirajte <?= $supportEmail ?></p>
-            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadržana.</p>
+            <p>Srdačan pozdrav,<br>Tim <?= $companyName ?></p>
         </div>
     </div>
 </body>

@@ -308,10 +308,7 @@ final class AllSecureService
 
     public static function callbackResultToArray($callback)
     {
-        $scheduleId = null;
-        $scheduleStatus = null;
-        
-        $scheduledData = null;
+        $scheduledData = array();
         $scheduleData = method_exists($callback, 'getScheduleData')
         ? $callback->getScheduleData()
         : null;
@@ -319,12 +316,9 @@ final class AllSecureService
         if($scheduleData) {
         try {
         $scheduledData = array(
-            'scheduleId' => method_exists($callback, 'getScheduleId') ? $callback->getScheduleId() : null,
-            'scheduleStatus' => method_exists($callback, 'getScheduleStatus') ? $callback->getScheduleStatus() : null,
-            'scheduledAt' => method_exists($callback, 'getScheduledAt') ? $callback->getScheduledAt() : null,
-            'scheduleStartDateTime' => method_exists($callback, 'getStartDateTimeFormatted') ? $callback->getStartDateTimeFormatted() : null,
-            'schedulePeriodLength' => method_exists($callback, 'getPeriodLength') ? $callback->getPeriodLength() : null,
-            'schedulePeriodUnit' => method_exists($callback, 'getPeriodUnit') ? $callback->getPeriodUnit() : null,
+            'scheduleId' => method_exists($scheduleData, 'getScheduleId') ? $scheduleData->getScheduleId() : null,
+            'scheduleStatus' => method_exists($scheduleData, 'getScheduleStatus') ? $scheduleData->getScheduleStatus() : null,
+            'scheduledAt' => method_exists($scheduleData, 'getScheduledAt') ? $scheduleData->getScheduledAt() : null,
         );
 
         } catch (Throwable $e) {
@@ -433,8 +427,6 @@ final class AllSecureService
             'bin' => $binData,
             'extraData' => $callback->getExtraData(),
             'scheduledData' => $scheduledData,
-            'scheduleId' => $scheduleId,
-            'scheduleStatus' => $scheduleStatus,
             'errorMessage' => $callback->getErrorMessage(),
             'errorCode' => $callback->getErrorCode(),
             'adapterMessage' => $callback->getAdapterMessage(),

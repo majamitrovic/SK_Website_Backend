@@ -125,8 +125,7 @@ try {
 
     $callbackResult = $callbackData['result'];
     $merchantTransactionId = $callbackData['merchantTransactionId'];
-    $scheduleId = $callbackData['scheduleId'] ?? null;
-    $scheduleStatus = $callbackData['scheduleStatus'] ?? null;
+    $scheduleId = $callbackData['scheduledData']['scheduleId'] ?? null;
     // Build payment data for templates and idempotency checks
     $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
 

@@ -162,27 +162,24 @@ final class MailTemplates
             'companyUrl' => htmlspecialchars(Config::baseUrl()),
             
             // Result info (for success/failure)
-            'status' => $payment['paymentStatus'],
+            'paymentStatus' => $payment['paymentStatus'],
             'paymentMethod' => htmlspecialchars(self::formatPaymentMethod($result['paymentMethod'] ?? 'Card')),
             'authCode' => htmlspecialchars($result['authCode'] ?? $result['uuid'] ?? ''),
             'card' => $result['card'] ?? [],
             'lastFour' => htmlspecialchars($result['card']['lastFourDigits'] ?? ''),
             'cardType' => htmlspecialchars($result['card']['type'] ?? ''),
-            'transactionDate' => (new \DateTime($result['scheduledAt'] ?? 'now'))
+            'transactionDate' => (new \DateTime('now'))
                             ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
                             ->format('Y-m-d H:i:s'),
+            'cancelLink' => htmlspecialchars($payment['cancelLink'] ?? ''),
             'errors' => self::formatErrors($result['errors'] ?? []),
         ];
 
         // Add recurring info if applicable
-        if (!empty($payment['recurring'])) {
-            $data['recurringEnabled'] = (bool) $payment['recurring']['enabled'];
-            $data['recurringAmount'] = htmlspecialchars($payment['recurring']['amount'] ?? '');
-            $data['recurringPeriodLength'] = htmlspecialchars($payment['recurring']['periodLength'] ?? '1');
-            $data['recurringPeriodUnit'] = self::formatPeriodUnit($payment['recurring']['periodUnit'] ?? 'MONTH');
-            $data['recurringStartDateTime'] = htmlspecialchars($payment['recurring']['startDateTime'] ?? '');
-            $data['scheduleId'] = htmlspecialchars($result['scheduleId'] ?? '');
-            $data['scheduleStatus'] = htmlspecialchars($result['scheduleStatus'] ?? '');
+        if (!empty($result['scheduledData'])) {
+            $data['scheduleId'] = htmlspecialchars($result['scheduledData']['scheduleId'] ?? '');
+            $data['scheduleStatus'] = htmlspecialchars($result['scheduledData']['scheduleStatus'] ?? '');
+            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt'] ?? '''');
         }
 
         // Add callback data if provided
