@@ -179,7 +179,7 @@ final class MailTemplates
         if (!empty($result['scheduledData'])) {
             $data['scheduleId'] = htmlspecialchars($result['scheduledData']['scheduleId'] ?? '');
             $data['scheduleStatus'] = htmlspecialchars($result['scheduledData']['scheduleStatus'] ?? '');
-            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt'] ?? '');
+            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt']['date'] ?? '');
         }
 
         // Add callback data if provided
