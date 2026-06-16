@@ -138,7 +138,7 @@ try {
     if (Config::bool('ENABLE_LOGGING')) {
 Logger::logTransaction([
 'type' => 'callback_parsed',
-
+'request_id' => $requestId,
 'raw_callback' => $callbackData, // remove or shorten in production if sensitive
 'timestamp' => date('Y-m-d H:i:s'),
 ]);

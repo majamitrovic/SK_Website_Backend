@@ -311,25 +311,24 @@ final class AllSecureService
         $scheduleId = null;
         $scheduleStatus = null;
         
-          $scheduleData = method_exists($callback, 'getScheduleData')
+        $scheduledData = null;
+        $scheduleData = method_exists($callback, 'getScheduleData')
         ? $callback->getScheduleData()
         : null;
 
         if($scheduleData) {
         try {
-            if (method_exists($callback, 'getScheduleId')) {
-                $scheduleId = $callback->getScheduleId();
-            }
+        $scheduledData = array(
+            'scheduleId' => method_exists($callback, 'getScheduleId') ? $callback->getScheduleId() : null,
+            'scheduleStatus' => method_exists($callback, 'getScheduleStatus') ? $callback->getScheduleStatus() : null,
+            'scheduledAt' => method_exists($callback, 'getScheduledAt') ? $callback->getScheduledAt() : null,
+            'scheduleStartDateTime' => method_exists($callback, 'getStartDateTimeFormatted') ? $callback->getStartDateTimeFormatted() : null,
+            'schedulePeriodLength' => method_exists($callback, 'getPeriodLength') ? $callback->getPeriodLength() : null,
+            'schedulePeriodUnit' => method_exists($callback, 'getPeriodUnit') ? $callback->getPeriodUnit() : null,
+        );
+
         } catch (Throwable $e) {
-            // Schedule ID not available (non-recurring payment)
-        }
-        
-        try {
-            if (method_exists($callback, 'getScheduleStatus')) {
-                $scheduleStatus = $callback->getScheduleStatus();
-            }
-        } catch (Throwable $e) {
-            // Schedule status not available (non-recurring payment)
+            // Schedule data not available  
         }
         }
         $cardData = array();
@@ -433,6 +432,7 @@ final class AllSecureService
             'eci' => $eci,
             'bin' => $binData,
             'extraData' => $callback->getExtraData(),
+            'scheduledData' => $scheduledData,
             'scheduleId' => $scheduleId,
             'scheduleStatus' => $scheduleStatus,
             'errorMessage' => $callback->getErrorMessage(),
