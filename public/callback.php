@@ -126,21 +126,6 @@ try {
     $callbackResult = $callback->getResult();
     $merchantTransactionId = $callback->getMerchantTransactionId();
 
-    $scheduleId = null;
-    $scheduleStatus = null;
-
-    if (method_exists($callback, 'getScheduleId')) {
-        try {
-            $scheduleId = $callback->getScheduleId();
-        } catch (Throwable $e) {}
-    }
-
-    if (method_exists($callback, 'getScheduleStatus')) {
-        try {
-            $scheduleStatus = $callback->getScheduleStatus();
-        } catch (Throwable $e) {}
-    }
-
     // Build payment data for templates and idempotency checks
     $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
 
@@ -154,7 +139,7 @@ try {
         'auth_code' => $callbackData['uuid'] ?? $callbackData['authCode'] ?? null,
         'result' => $callbackResult,
         'transaction_time' => $callbackData['scheduledAt'] ?? date('c'),
-        'scheduleId' => $scheduleId,
+        'scheduleId' => $callbackData['scheduleId'] ?? null,
     ];
 
     // If a schedule exists, create a short-lived HMAC token for cancellation links

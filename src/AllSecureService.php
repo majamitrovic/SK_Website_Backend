@@ -299,9 +299,9 @@ final class AllSecureService
             'redirectType' => $result->getRedirectType(),
             'redirectUrl' => $result->getRedirectUrl(),
             'htmlContent' => $result->getHtmlContent(),
-            'scheduleId' => $scheduleData ? ($scheduleData->getScheduleId() ?? null) : null,
-            'scheduleStatus' => $scheduleData ? ($scheduleData->getScheduleStatus() ?? null) : null,
-            'scheduledAt' => $scheduleData ? ($scheduleData->getScheduledAt() ?? null) : null,
+            'scheduleId' => $scheduleData ? ($result->getScheduleId() ?? null) : null,
+            'scheduleStatus' => $scheduleData ? ($result->getScheduleStatus() ?? null) : null,
+            'scheduledAt' => $scheduleData ? ($result->getScheduledAt() ?? null) : null,
             'errors' => self::errorsToArray($result->getErrors()),
         );
     }
@@ -311,6 +311,11 @@ final class AllSecureService
         $scheduleId = null;
         $scheduleStatus = null;
         
+          $scheduleData = method_exists($result, 'getScheduleData')
+        ? $result->getScheduleData()
+        : null;
+
+        if($scheduleData) {
         try {
             if (method_exists($callback, 'getScheduleId')) {
                 $scheduleId = $callback->getScheduleId();
