@@ -311,8 +311,8 @@ final class AllSecureService
         $scheduleId = null;
         $scheduleStatus = null;
         
-          $scheduleData = method_exists($result, 'getScheduleData')
-        ? $result->getScheduleData()
+          $scheduleData = method_exists($callback, 'getScheduleData')
+        ? $callback->getScheduleData()
         : null;
 
         if($scheduleData) {
@@ -331,7 +331,7 @@ final class AllSecureService
         } catch (Throwable $e) {
             // Schedule status not available (non-recurring payment)
         }
-        
+        }
         $cardData = array();
         $returnData = null;
         try {

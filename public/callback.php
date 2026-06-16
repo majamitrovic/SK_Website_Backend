@@ -125,7 +125,8 @@ try {
 
     $callbackResult = $callback->getResult();
     $merchantTransactionId = $callback->getMerchantTransactionId();
-
+    $scheduleId = $callbackData['scheduleId'] ?? null;
+    $scheduleStatus = $callbackData['scheduleStatus'] ?? null;
     // Build payment data for templates and idempotency checks
     $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
 
@@ -185,14 +186,11 @@ Logger::logTransaction([
                 try {
                     if ($emailType === 'payment_success') {
                         $sent = EmailService::sendPaymentSuccess($paymentData, $callbackData);
-                    } elseif ($emailType === 'payment_failure') {
-                        $sent = EmailService::sendPaymentFailure($paymentData, $callbackData);
                     } elseif ($emailType === 'schedule_confirmation') {
                         $sent = EmailService::sendScheduleConfirmation($paymentData, $callbackData);
-                    } elseif ($emailType === 'schedule_failure') {
-                        // reuse payment failure template for scheduled failures
+                    } elseif ($emailType === 'payment_failure') {
                         $sent = EmailService::sendPaymentFailure($paymentData, $callbackData);
-                    }
+                   
                 } catch (Throwable $e) {
                     $sent = false;
                     if (Config::bool('ENABLE_LOGGING')) {
