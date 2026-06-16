@@ -10,7 +10,7 @@ final class MailTemplates
     public static function getSuccessSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('success');
-        $subject = $config['subject'] ?? 'Potvrda pla??anja - Transakcija {transaction_id}';
+        $subject = $config['subject'] ?? 'Potvrda plaćanja - Transakcija {transaction_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -32,7 +32,7 @@ final class MailTemplates
     public static function getFailureSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('failure');
-        $subject = $config['subject'] ?? 'Pla??anje neuspe??no - Transakcija {transaction_id}';
+        $subject = $config['subject'] ?? 'Plaćanje neuspešno - Transakcija {transaction_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -54,7 +54,7 @@ final class MailTemplates
     public static function getScheduleSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('schedule');
-        $subject = $config['subject'] ?? 'Potvrda periodi??nog pla??anja - Raspored {schedule_id}';
+        $subject = $config['subject'] ?? 'Potvrda periodičnog plaćanja - Raspored {schedule_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -147,20 +147,14 @@ final class MailTemplates
     {
         $data = [
             // Basic payment info
-            'merchantTransactionId' => htmlspecialchars($payment['merchantTransactionId'] ?? ''),
-            'amount' => htmlspecialchars($payment['amount'] ?? '0'),
-            'currency' => htmlspecialchars($payment['currency'] ?? 'EUR'),
-            'description' => htmlspecialchars($payment['description'] ?? ''),
+            'merchantTransactionId' => htmlspecialchars($result['merchantTransactionId'] ?? ''),
+            'amount' => htmlspecialchars($result['amount'] ?? '0'),
+            'currency' => htmlspecialchars($result['currency'] ?? 'EUR'),
             
             // Customer info
-            'firstName' => htmlspecialchars($payment['first_name'] ?? ''),
-            'lastName' => htmlspecialchars($payment['last_name'] ?? ''),
-            'email' => htmlspecialchars($payment['email'] ?? ''),
-            'billingAddress' => htmlspecialchars($payment['billing_address'] ?? ''),
-            'billingCity' => htmlspecialchars($payment['billing_city'] ?? ''),
-            'billingPostcode' => htmlspecialchars($payment['billing_postcode'] ?? ''),
-            'billingState' => htmlspecialchars($payment['billing_state'] ?? ''),
-            'billingCountry' => htmlspecialchars($payment['billing_country'] ?? ''),
+            'firstName' => htmlspecialchars($result['customer']['first_name'] ?? ''),
+            'lastName' => htmlspecialchars($result['customer']['last_name'] ?? ''),
+            'email' => htmlspecialchars($payment['email'] ?? '')
             
             // Company info
             'companyName' => htmlspecialchars(Config::get('COMPANY_NAME', 'Our Company')),
@@ -168,13 +162,12 @@ final class MailTemplates
             'companyUrl' => htmlspecialchars(Config::baseUrl()),
             
             // Result info (for success/failure)
-            'success' => $result['success'] ?? false,
+            'status' => $payment['paymentStatus'],
             'paymentMethod' => htmlspecialchars(self::formatPaymentMethod($result['paymentMethod'] ?? 'Card')),
-            'bankAuthCode' => htmlspecialchars($result['uuid'] ?? ''),
             'authCode' => htmlspecialchars($result['authCode'] ?? $result['uuid'] ?? ''),
-            'card' => $payment['card'] ?? $result['card'] ?? [],
-            'lastFour' => htmlspecialchars($payment['card']['lastFourDigits'] ?? $result['card']['lastFourDigits'] ?? ''),
-            'cardType' => htmlspecialchars($payment['card']['type'] ?? $result['card']['type'] ?? ''),
+            'card' => $result['card'] ?? [],
+            'lastFour' => htmlspecialchars($result['card']['lastFourDigits'] ?? ''),
+            'cardType' => htmlspecialchars($result['card']['type'] ?? ''),
             'transactionDate' => (new \DateTime($result['scheduledAt'] ?? 'now'))
                             ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
                             ->format('Y-m-d H:i:s'),
@@ -193,11 +186,11 @@ final class MailTemplates
         }
 
         // Add callback data if provided
-        if (isset($payment['result'])) {
-            $data['uuid'] = htmlspecialchars($payment['uuid'] ?? '');
-            $data['purchaseId'] = htmlspecialchars($payment['purchaseId'] ?? '');
-            $data['transactionType'] = htmlspecialchars($payment['transactionType'] ?? '');
-            $data['result'] = htmlspecialchars($payment['result'] ?? '');
+        if (isset($result['result'])) {
+            $data['uuid'] = htmlspecialchars($result['uuid'] ?? '');
+            $data['purchaseId'] = htmlspecialchars($result['purchaseId'] ?? '');
+            $data['transactionType'] = htmlspecialchars($result['transactionType'] ?? '');
+            $data['result'] = htmlspecialchars($result['result'] ?? '');
         }
 
         return $data;
@@ -209,12 +202,12 @@ final class MailTemplates
     private static function replacePlaceholders(string $text, array $payment, array $result = []): string
     {
         $replacements = [
-            '{transaction_id}' => $payment['merchantTransactionId'] ?? '',
+            '{transaction_id}' => $result['merchantTransactionId'] ?? '',
             '{schedule_id}' => $result['scheduleId'] ?? '',
-            '{amount}' => $payment['amount'] ?? '',
-            '{currency}' => $payment['currency'] ?? '',
-            '{first_name}' => $payment['first_name'] ?? '',
-            '{last_name}' => $payment['last_name'] ?? '',
+            '{amount}' => $result['amount'] ?? '',
+            '{currency}' => $result['currency'] ?? '',
+            '{first_name}' => $result['customer']['firstName'] ?? '',
+            '{last_name}' => $result['customer']['lastName'] ?? '',
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $text);

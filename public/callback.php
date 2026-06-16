@@ -123,25 +123,26 @@ try {
 
     PaymentStorage::append('callbacks.jsonl', $callbackData);
 
-    $callbackResult = $callback->getResult();
-    $merchantTransactionId = $callback->getMerchantTransactionId();
+    $callbackResult = $callbackData['result'];
+    $merchantTransactionId = $callbackData['merchantTransactionId'];
     $scheduleId = $callbackData['scheduleId'] ?? null;
     $scheduleStatus = $callbackData['scheduleStatus'] ?? null;
     // Build payment data for templates and idempotency checks
     $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
 
     $paymentData = [
-        'merchantTransactionId' => $merchantTransactionId,
         'email' => $customerEmail,
-        'amount' => $callback->getAmount(),
-        'currency' => $callback->getCurrency(),
-        'transaction_type' => $callback->getTransactionType(),
-        'card' => $callbackData['card'] ?? [],
-        'auth_code' => $callbackData['uuid'] ?? $callbackData['authCode'] ?? null,
         'result' => $callbackResult,
-        'transaction_time' => $callbackData['scheduledAt'] ?? date('c'),
-        'scheduleId' => $callbackData['scheduleId'] ?? null,
     ];
+
+    if (Config::bool('ENABLE_LOGGING')) {
+Logger::logTransaction([
+'type' => 'callback_parsed',
+
+'raw_callback' => $callbackData, // remove or shorten in production if sensitive
+'timestamp' => date('Y-m-d H:i:s'),
+]);
+}
 
     // If a schedule exists, create a short-lived HMAC token for cancellation links
     if (!empty($scheduleId)) {
@@ -154,41 +155,27 @@ try {
         $paymentData['cancelLink'] = Config::baseUrl() . '/cancel_subscription.php?token=' . urlencode($token);
     }
 
-    if (Config::bool('ENABLE_LOGGING')) {
-Logger::logTransaction([
-'type' => 'callback_parsed',
-'request_id' => $requestId,
-'merchantTransactionId' => $merchantTransactionId,
-'result' => $callbackResult,
-'scheduleId' => $scheduleId,
-'scheduleStatus' => $scheduleStatus,
-'uuid' => $callbackData['uuid'] ?? null,
-'amount' => $callbackData['amount'] ?? null,
-'currency' => $callbackData['currency'] ?? null,
-'card_type' => $callbackData['card']['type'] ?? null,
-'card_last4' => $callbackData['card']['lastFourDigits'] ?? $callbackData['card']['lastFour'] ?? null,
-'raw_callback' => $callbackData, // remove or shorten in production if sensitive
-'timestamp' => date('Y-m-d H:i:s'),
-]);
-}
+    // Prefer explicit transaction/payment status when available (case-insensitive)
+    $paymentStatus = null;
+    if (method_exists($callback, 'getTransactionStatus')) {
+        try {
+            $paymentStatus = $callback->getTransactionStatus();
+        } catch (Throwable $e) {
+            $paymentStatus = null;
+        }
+    }
+    // fallback to parsed callback fields or original result
+    if (empty($paymentStatus)) {
+        $paymentStatus = $callbackData['transactionStatus'] ?? $callbackData['paymentStatus'] ?? $callbackResult ?? null;
+    }
+
+    $paymentData['paymentStatus'] = $paymentStatus ?? null;
+
     try {
         // Decide single customer email type per callback
         $emailType = null;
 
-        // Prefer explicit transaction/payment status when available (case-insensitive)
-        $paymentStatus = null;
-        if (method_exists($callback, 'getTransactionStatus')) {
-            try {
-                $paymentStatus = $callback->getTransactionStatus();
-            } catch (Throwable $e) {
-                $paymentStatus = null;
-            }
-        }
-
-        // fallback to parsed callback fields or original result
-        if (empty($paymentStatus)) {
-            $paymentStatus = $callbackData['transactionStatus'] ?? $callbackData['paymentStatus'] ?? $callbackResult ?? null;
-        }
+      
 
         $ps = strtolower((string) $paymentStatus);
 
