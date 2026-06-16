@@ -141,67 +141,89 @@ try {
         } catch (Throwable $e) {}
     }
 
-    if (Config::bool('ENABLE_LOGGING')) {
-        Logger::logPaymentStatus(
-            $merchantTransactionId,
-            $callbackResult,
-            [
-                'type' => 'callback',
-                'uuid' => $callback->getUuid(),
-                'purchase_id' => $callback->getPurchaseId(),
-                'transaction_type' => $callback->getTransactionType(),
-                'payment_method' => $callback->getPaymentMethod(),
-                'card_last_four' => $callbackData['cardLastFourDigits'] ?? null,
-                'auth_code' => $callbackData['authCode'] ?? null,
-                'schedule_id' => $scheduleId,
-                'schedule_status' => $scheduleStatus,
-                'timestamp' => date('Y-m-d H:i:s'),
-                'request_id' => $requestId,
-            ]
-        );
-    }
-
+    // Build payment data for templates and idempotency checks
     $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
 
     $paymentData = [
-        'id' => $merchantTransactionId,
+        'merchantTransactionId' => $merchantTransactionId,
         'email' => $customerEmail,
         'amount' => $callback->getAmount(),
         'currency' => $callback->getCurrency(),
         'transaction_type' => $callback->getTransactionType(),
+        'card' => $callbackData['card'] ?? [],
+        'auth_code' => $callbackData['uuid'] ?? $callbackData['authCode'] ?? null,
+        'result' => $callbackResult,
+        'transaction_time' => $callbackData['scheduledAt'] ?? date('c'),
+        'scheduleId' => $scheduleId,
     ];
 
+    // If a schedule exists, create a short-lived HMAC token for cancellation links
+    if (!empty($scheduleId)) {
+        $expires = time() + (60 * 60 * 24 * 7); // 7 days
+        $tokenPayload = $merchantTransactionId . '|' . $scheduleId . '|' . $expires;
+        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
+        $signature = hash_hmac('sha256', $tokenPayload, $secret);
+        $token = rtrim(strtr(base64_encode($tokenPayload . '|' . $signature), '+/', '-_'), '=');
+        $paymentData['cancelToken'] = $token;
+        $paymentData['cancelLink'] = Config::baseUrl() . '/cancel_subscription.php?token=' . urlencode($token);
+    }
+
     try {
-
+        // Decide single customer email type per callback
+        $emailType = null;
         if ($callbackResult === 'confirmed') {
-
-            if ($customerEmail) {
-                EmailService::sendPaymentSuccess($paymentData, $callbackData);
-            }
-
-            if (!empty($scheduleId) && $customerEmail) {
-                EmailService::sendScheduleConfirmation($paymentData, $callbackData);
-            }
-
+            $emailType = $scheduleId ? 'schedule_confirmation' : 'payment_success';
         } elseif (in_array($callbackResult, ['failed', 'error'], true)) {
+            $emailType = $scheduleId ? 'schedule_failure' : 'payment_failure';
+        }
 
-            if ($customerEmail) {
-                EmailService::sendPaymentFailure($paymentData, $callbackData);
-            } else {
-                if (Config::bool('ENABLE_LOGGING')) {
-                    Logger::logError(
-                        'Cannot send payment failure email - customer email not found',
-                        [
-                            'transaction_id' => $merchantTransactionId,
-                            'result' => $callbackResult,
-                            'request_id' => $requestId,
-                        ],
-                        'warning'
-                    );
+        if ($customerEmail && $emailType) {
+            if (!PaymentStorage::emailWasSent($merchantTransactionId, $emailType)) {
+                $sent = false;
+                try {
+                    if ($emailType === 'payment_success') {
+                        $sent = EmailService::sendPaymentSuccess($paymentData, $callbackData);
+                    } elseif ($emailType === 'payment_failure') {
+                        $sent = EmailService::sendPaymentFailure($paymentData, $callbackData);
+                    } elseif ($emailType === 'schedule_confirmation') {
+                        $sent = EmailService::sendScheduleConfirmation($paymentData, $callbackData);
+                    } elseif ($emailType === 'schedule_failure') {
+                        // reuse payment failure template for scheduled failures
+                        $sent = EmailService::sendPaymentFailure($paymentData, $callbackData);
+                    }
+                } catch (Throwable $e) {
+                    $sent = false;
+                    if (Config::bool('ENABLE_LOGGING')) {
+                        Logger::logError(
+                            'Email sending exception: ' . $e->getMessage(),
+                            [
+                                'transaction_id' => $merchantTransactionId,
+                                'request_id' => $requestId,
+                            ],
+                            'error'
+                        );
+                    }
                 }
+
+                if ($sent) {
+                    PaymentStorage::markEmailSent($merchantTransactionId, $emailType, ['request_id' => $requestId]);
+                }
+            }
+        } elseif (!$customerEmail && $emailType) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    'Cannot send customer email - customer email not found',
+                    [
+                        'transaction_id' => $merchantTransactionId,
+                        'result' => $callbackResult,
+                        'request_id' => $requestId,
+                    ],
+                    'warning'
+                );
             }
         }
 
+        // Admin/internal notification remains unchanged
         EmailService::sendCallbackNotification($callbackData);
 
     } catch (Throwable $emailException) {

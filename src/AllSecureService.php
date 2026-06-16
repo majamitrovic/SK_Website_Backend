@@ -149,17 +149,59 @@ final class AllSecureService
 
     public function showSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->showSchedule($scheduleId));
+        $res = $this->client->showSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function pauseSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->pauseSchedule($scheduleId));
+        $res = $this->client->pauseSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function cancelSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->cancelSchedule($scheduleId));
+        $res = $this->client->cancelSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function continueSchedule($scheduleId, $continueDateTime)
@@ -169,7 +211,21 @@ final class AllSecureService
             ->setScheduleId($scheduleId)
             ->setContinueDateTime($continueDateTime ?: new \DateTime('+1 hour'));
 
-        return self::scheduleResultToArray($this->client->continueSchedule($schedule));
+        $res = $this->client->continueSchedule($schedule);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public static function transactionResultToArray(Result $result)

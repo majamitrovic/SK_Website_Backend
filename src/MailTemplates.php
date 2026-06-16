@@ -122,16 +122,41 @@ final class MailTemplates
         
         // Start output buffering
         ob_start();
-        
+
         try {
             // Extract variables to template scope
             extract($data, EXTR_SKIP);
-            
+
             // Include template
             include $templateFile;
-            
-            // Get and return output
-            return ob_get_clean();
+
+            // Capture rendered template
+            $content = ob_get_clean();
+
+            // For customer-facing emails ensure a standardized summary is prepended
+            if (in_array($type, ['success', 'failure', 'schedule'], true)) {
+                $dt = new \DateTime($data['transactionDate'] ?? 'now', new \DateTimeZone('UTC'));
+                try {
+                    $dt->setTimezone(new \DateTimeZone('Europe/Belgrade'));
+                } catch (Exception $e) {
+                    // ignore timezone conversion errors
+                }
+
+                $cardLast = $data['card']['lastFourDigits'] ?? ($data['lastFour'] ?? '');
+                $auth = $data['bankAuthCode'] ?? ($data['authCode'] ?? '');
+                $resultText = $data['result'] ?? ($data['success'] ? 'Successful' : 'Failed');
+
+                $summary = "<p>Merchant Transaction ID: " . htmlspecialchars($data['merchantTransactionId'] ?? '') . "<br>";
+                $summary .= "Authorization Code: " . htmlspecialchars($auth) . "<br>";
+                $summary .= "Amount: " . htmlspecialchars($data['amount'] ?? '') . " " . htmlspecialchars($data['currency'] ?? '') . "<br>";
+                $summary .= "Card: " . htmlspecialchars($data['paymentMethod'] ?? '') . " ****" . htmlspecialchars($cardLast) . "<br>";
+                $summary .= "Transaction Time: " . htmlspecialchars($dt->format('Y-m-d H:i:s T')) . "<br>";
+                $summary .= "Result: " . htmlspecialchars($resultText) . "</p>";
+
+                return $summary . $content;
+            }
+
+            return $content;
         } catch (Exception $e) {
             ob_end_clean();
             throw $e;
@@ -169,6 +194,10 @@ final class MailTemplates
             'success' => $result['success'] ?? false,
             'paymentMethod' => htmlspecialchars(self::formatPaymentMethod($result['paymentMethod'] ?? 'Card')),
             'bankAuthCode' => htmlspecialchars($result['uuid'] ?? ''),
+            'authCode' => htmlspecialchars($result['authCode'] ?? $result['uuid'] ?? ''),
+            'card' => $payment['card'] ?? $result['card'] ?? [],
+            'lastFour' => htmlspecialchars($payment['card']['lastFourDigits'] ?? $result['card']['lastFourDigits'] ?? ''),
+            'cardType' => htmlspecialchars($payment['card']['type'] ?? $result['card']['type'] ?? ''),
             'transactionDate' => date('Y-m-d H:i:s', strtotime($result['scheduledAt'] ?? 'now')),
             'errors' => self::formatErrors($result['errors'] ?? []),
         ];

@@ -127,6 +127,34 @@ final class EmailService
     }
 
     /**
+     * Send schedule cancellation confirmation to customer
+     */
+    public static function sendCancellationConfirmation(array $payment, array $result)
+    {
+        $to = $payment['email'] ?? '';
+        if (!$to) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError(
+                    'Cancellation confirmation email not sent - no email address',
+                    ['payment_id' => $payment['merchantTransactionId'] ?? null],
+                    'warning'
+                );
+            }
+            return false;
+        }
+
+        $subject = MailTemplates::getScheduleSubject($payment, $result);
+        $body = MailTemplates::getScheduleBody($payment, $result);
+
+        $sent = self::send($to, $subject, $body, 'schedule_cancellation', [
+            'payment_id' => $payment['merchantTransactionId'] ?? null,
+            'customer_email' => $to,
+        ]);
+
+        return $sent;
+    }
+
+    /**
      * Send email using PHP mail function or configured SMTP
      */
     private static function send($to, $subject, $body, $emailType = 'generic', array $context = [])
