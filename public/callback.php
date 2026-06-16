@@ -174,10 +174,31 @@ Logger::logTransaction([
     try {
         // Decide single customer email type per callback
         $emailType = null;
-        if ($callbackResult === 'ok') {
+
+        // Prefer explicit transaction/payment status when available (case-insensitive)
+        $paymentStatus = null;
+        if (method_exists($callback, 'getTransactionStatus')) {
+            try {
+                $paymentStatus = $callback->getTransactionStatus();
+            } catch (Throwable $e) {
+                $paymentStatus = null;
+            }
+        }
+
+        // fallback to parsed callback fields or original result
+        if (empty($paymentStatus)) {
+            $paymentStatus = $callbackData['transactionStatus'] ?? $callbackData['paymentStatus'] ?? $callbackResult ?? null;
+        }
+
+        $ps = strtolower((string) $paymentStatus);
+
+        // Treat these as successful states
+        if (in_array($ps, ['confirmed', 'ok', 'completed', 'success'], true)) {
             $emailType = $scheduleId ? 'schedule_confirmation' : 'payment_success';
-        } elseif (in_array($callbackResult, ['failed', 'error'], true)) {
-            $emailType = 'payment_failure';
+        }
+        // Treat these as failure/error states
+        elseif (in_array($ps, ['failed', 'error', 'declined', 'rejected', 'cancelled'], true)) {
+            $emailType = $scheduleId ? 'schedule_failure' : 'payment_failure';
         }
 
         if ($customerEmail && $emailType) {
@@ -190,7 +211,7 @@ Logger::logTransaction([
                         $sent = EmailService::sendScheduleConfirmation($paymentData, $callbackData);
                     } elseif ($emailType === 'payment_failure') {
                         $sent = EmailService::sendPaymentFailure($paymentData, $callbackData);
-                   
+                    }
                 } catch (Throwable $e) {
                     $sent = false;
                     if (Config::bool('ENABLE_LOGGING')) {
