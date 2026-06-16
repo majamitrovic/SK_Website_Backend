@@ -154,7 +154,7 @@ final class MailTemplates
             // Customer info
             'firstName' => htmlspecialchars($result['customer']['first_name'] ?? ''),
             'lastName' => htmlspecialchars($result['customer']['last_name'] ?? ''),
-            'email' => htmlspecialchars($payment['email'] ?? '')
+            'email' => htmlspecialchars($payment['email'] ?? ''),
             
             // Company info
             'companyName' => htmlspecialchars(Config::get('COMPANY_NAME', 'Our Company')),
@@ -179,7 +179,7 @@ final class MailTemplates
         if (!empty($result['scheduledData'])) {
             $data['scheduleId'] = htmlspecialchars($result['scheduledData']['scheduleId'] ?? '');
             $data['scheduleStatus'] = htmlspecialchars($result['scheduledData']['scheduleStatus'] ?? '');
-            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt'] ?? '''');
+            $data['scheduledAt'] = htmlspecialchars($result['scheduledData']['scheduledAt'] ?? '');
         }
 
         // Add callback data if provided

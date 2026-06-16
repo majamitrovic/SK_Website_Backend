@@ -13,6 +13,6 @@
  */
 
 return [
-    'subject' => 'Potvrda periodi??nog pla??anja - Raspored {schedule_id}',
+    'subject' => 'Potvrda periodičnog plaćanja - Raspored {schedule_id}',
     'template' => 'schedule.html',
 ];
