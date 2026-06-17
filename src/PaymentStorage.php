@@ -83,6 +83,39 @@ final class PaymentStorage
     }
 
     /**
+     * Retrieve customer email for a merchant transaction from stored transactions
+     *
+     * Returns null if not found or file not readable.
+     */
+    public static function getCustomerEmail(string $merchantTransactionId): ?string
+    {
+        $path = Config::storagePath('transactions.jsonl');
+        if (!is_readable($path)) {
+            return null;
+        }
+
+        $fp = fopen($path, 'r');
+        if (!$fp) {
+            return null;
+        }
+
+        while (($line = fgets($fp)) !== false) {
+            $rec = json_decode(trim($line), true);
+            if (!is_array($rec)) {
+                continue;
+            }
+
+            if ((($rec['merchantTransactionId'] ?? null) === $merchantTransactionId)) {
+                fclose($fp);
+                return $rec['customer_email'] ?? $rec['email'] ?? null;
+            }
+        }
+
+        fclose($fp);
+        return null;
+    }
+
+    /**
      * Check whether a cancel token was already used
      */
     public static function tokenWasUsed(string $token): bool

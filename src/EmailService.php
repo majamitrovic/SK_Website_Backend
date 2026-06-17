@@ -14,7 +14,7 @@ final class EmailService
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logError(
                     'Payment success email not sent - no email address',
-                    ['payment_id' => $payment['id'] ?? null],
+                    ['payment_id' => $result['merchantTransactionId'] ?? null],
                     'warning'
                 );
             }
@@ -25,9 +25,9 @@ final class EmailService
         $body = MailTemplates::getSuccessBody($payment, $result);
         
         $sent = self::send($to, $subject, $body, 'payment_success', [
-            'payment_id' => $payment['id'] ?? null,
+            'payment_id' => $result['merchantTransactionId'] ?? null,
             'customer_email' => $to,
-            'amount' => $payment['amount'] ?? null,
+            'amount' => $result['amount'] ?? null,
         ]);
 
         return $sent;
@@ -43,7 +43,7 @@ final class EmailService
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logError(
                     'Payment failure email not sent - no email address',
-                    ['payment_id' => $payment['id'] ?? null],
+                    ['payment_id' => $result['merchantTransactionId'] ?? null],
                     'warning'
                 );
             }
@@ -54,9 +54,9 @@ final class EmailService
         $body = MailTemplates::getFailureBody($payment, $result);
         
         $sent = self::send($to, $subject, $body, 'payment_failure', [
-            'payment_id' => $payment['id'] ?? null,
+            'payment_id' => $result['merchantTransactionId'] ?? null,
             'customer_email' => $to,
-            'amount' => $payment['amount'] ?? null,
+            'amount' => $result['amount'] ?? null,
             'errors' => $result['errors'] ?? [],
         ]);
 
@@ -74,9 +74,9 @@ final class EmailService
                 Logger::logError(
                     'Schedule confirmation email not sent - missing email or schedule ID',
                     [
-                        'payment_id' => $payment['id'] ?? null,
+                        'payment_id' => $result['merchantTransactionId'] ?? null,
                         'has_email' => !empty($to),
-                        'has_schedule_id' => !empty($result['scheduleId'] ?? null),
+                        'has_schedule_id' => !empty($result['scheduledData']['scheduleId'] ?? null),
                     ],
                     'warning'
                 );
@@ -88,10 +88,10 @@ final class EmailService
         $body = MailTemplates::getScheduleBody($payment, $result);
         
         $sent = self::send($to, $subject, $body, 'schedule_confirmation', [
-            'payment_id' => $payment['id'] ?? null,
+            'payment_id' => $result['merchantTransactionId'] ?? null,
             'customer_email' => $to,
             'schedule_id' => $result['scheduledData']['scheduleId'] ?? null,
-            'amount' => $payment['amount'] ?? null,
+            'amount' => $result['amount'] ?? null,
         ]);
 
         return $sent;
@@ -136,7 +136,7 @@ final class EmailService
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logError(
                     'Cancellation confirmation email not sent - no email address',
-                    ['payment_id' => $payment['merchantTransactionId'] ?? null],
+                    ['payment_id' => $result['merchantTransactionId'] ?? null],
                     'warning'
                 );
             }
@@ -147,7 +147,7 @@ final class EmailService
         $body = MailTemplates::getScheduleBody($payment, $result);
 
         $sent = self::send($to, $subject, $body, 'schedule_cancellation', [
-            'payment_id' => $payment['merchantTransactionId'] ?? null,
+            'payment_id' => $result['merchantTransactionId'] ?? null,
             'customer_email' => $to,
         ]);
 

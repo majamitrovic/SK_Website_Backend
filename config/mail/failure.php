@@ -12,6 +12,6 @@
  */
 
 return [
-    'subject' => 'Pla??anje neuspe??no - Transakcija {transaction_id}',
+    'subject' => 'Plaćanje neuspešno - Transakcija {transaction_id}',
     'template' => 'failure.html',
 ];

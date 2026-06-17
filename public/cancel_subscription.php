@@ -72,6 +72,15 @@ try {
         exit;
     }
 
+    if (Config::bool('ENABLE_LOGGING')) {
+Logger::logTransaction([
+'type' => 'schedule_parsed',
+'request_id' => $requestId,
+'raw_callback' => $schedule, 
+'raw_merchant_data' => $merchantData,
+'timestamp' => date('Y-m-d H:i:s'),
+]);
+}
     // Attempt cancellation
     $cancelResult = $service->cancelSchedule($scheduleId);
 
@@ -87,9 +96,15 @@ try {
     PaymentStorage::markTokenUsed($token, ['merchantTransactionId' => $merchantTransactionId, 'scheduleId' => $scheduleId]);
 
     // Send confirmation email to customer (best-effort)
+    // Send confirmation email to customer (best-effort)
+    $customerEmail = $schedule['customer']['identification'] ?? null;
+    if (empty($customerEmail)) {
+        $customerEmail = PaymentStorage::getCustomerEmail($merchantTransactionId);
+    }
+
     $payment = [
         'merchantTransactionId' => $merchantTransactionId,
-        'email' => $schedule['customer']['identification'] ?? null,
+        'email' => $customerEmail,
     ];
     try {
         EmailService::sendCancellationConfirmation($payment, $cancelResult ?: []);
