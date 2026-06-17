@@ -10,7 +10,7 @@ final class MailTemplates
     public static function getSuccessSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('success');
-        $subject = $config['subject'] ?? 'Potvrda pla??anja - Transakcija {transaction_id}';
+        $subject = $config['subject'] ?? 'Potvrda plaćanja - Transakcija {transaction_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -32,7 +32,7 @@ final class MailTemplates
     public static function getFailureSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('failure');
-        $subject = $config['subject'] ?? 'Pla??anje neuspe??no - Transakcija {transaction_id}';
+        $subject = $config['subject'] ?? 'Plaćanje neuspešno - Transakcija {transaction_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -54,7 +54,7 @@ final class MailTemplates
     public static function getScheduleSubject(array $payment, array $result): string
     {
         $config = self::loadConfig('schedule');
-        $subject = $config['subject'] ?? 'Potvrda periodi??nog pla??anja - Raspored {schedule_id}';
+        $subject = $config['subject'] ?? 'Potvrda periodičnog plaćanja - Raspored {schedule_id}';
         
         return self::replacePlaceholders($subject, $payment, $result);
     }
@@ -68,6 +68,28 @@ final class MailTemplates
         $template = $config['template'] ?? 'schedule.html';
         
         return self::renderTemplate($template, $payment, $result, 'schedule');
+    }
+
+    /**
+     * Get cancellation email subject
+     */
+    public static function getCancelSubject(array $payment, array $result): string
+    {
+        $config = self::loadConfig('cancel');
+        $subject = $config['subject'] ?? 'Potvrda otkazivanja pretplate - Transakcija {transaction_id}';
+
+        return self::replacePlaceholders($subject, $payment, $result);
+    }
+
+    /**
+     * Get cancellation email body
+     */
+    public static function getCancelBody(array $payment, array $result): string
+    {
+        $config = self::loadConfig('cancel');
+        $template = $config['template'] ?? 'cancel.html';
+
+        return self::renderTemplate($template, $payment, $result, 'cancel');
     }
 
     /**
@@ -122,16 +144,18 @@ final class MailTemplates
         
         // Start output buffering
         ob_start();
-        
+
         try {
             // Extract variables to template scope
             extract($data, EXTR_SKIP);
-            
+
             // Include template
             include $templateFile;
-            
-            // Get and return output
-            return ob_get_clean();
+
+            // Capture rendered template
+            $content = ob_get_clean();
+
+            return $content;
         } catch (Exception $e) {
             ob_end_clean();
             throw $e;
@@ -145,20 +169,14 @@ final class MailTemplates
     {
         $data = [
             // Basic payment info
-            'merchantTransactionId' => htmlspecialchars($payment['merchantTransactionId'] ?? ''),
-            'amount' => htmlspecialchars($payment['amount'] ?? '0'),
-            'currency' => htmlspecialchars($payment['currency'] ?? 'EUR'),
-            'description' => htmlspecialchars($payment['description'] ?? ''),
+            'merchantTransactionId' => htmlspecialchars($result['merchantTransactionId'] ?? ''),
+            'amount' => htmlspecialchars($result['amount'] ?? '0'),
+            'currency' => htmlspecialchars($result['currency'] ?? 'EUR'),
             
             // Customer info
-            'firstName' => htmlspecialchars($payment['first_name'] ?? ''),
-            'lastName' => htmlspecialchars($payment['last_name'] ?? ''),
+            'firstName' => htmlspecialchars($result['customer']['first_name'] ?? ''),
+            'lastName' => htmlspecialchars($result['customer']['last_name'] ?? ''),
             'email' => htmlspecialchars($payment['email'] ?? ''),
-            'billingAddress' => htmlspecialchars($payment['billing_address'] ?? ''),
-            'billingCity' => htmlspecialchars($payment['billing_city'] ?? ''),
-            'billingPostcode' => htmlspecialchars($payment['billing_postcode'] ?? ''),
-            'billingState' => htmlspecialchars($payment['billing_state'] ?? ''),
-            'billingCountry' => htmlspecialchars($payment['billing_country'] ?? ''),
             
             // Company info
             'companyName' => htmlspecialchars(Config::get('COMPANY_NAME', 'Our Company')),
@@ -166,31 +184,58 @@ final class MailTemplates
             'companyUrl' => htmlspecialchars(Config::baseUrl()),
             
             // Result info (for success/failure)
-            'success' => $result['success'] ?? false,
+            'paymentStatus' => $payment['paymentStatus'],
             'paymentMethod' => htmlspecialchars(self::formatPaymentMethod($result['paymentMethod'] ?? 'Card')),
-            'bankAuthCode' => htmlspecialchars($result['uuid'] ?? ''),
-            'transactionDate' => date('Y-m-d H:i:s', strtotime($result['scheduledAt'] ?? 'now')),
+            'authCode' => htmlspecialchars($result['authCode'] ?? $result['uuid'] ?? ''),
+            'card' => $result['card'] ?? [],
+            'lastFour' => htmlspecialchars($result['card']['lastFourDigits'] ?? ''),
+            'cardType' => htmlspecialchars($result['card']['type'] ?? ''),
+            'transactionDate' => (new \DateTime('now'))
+                            ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
+                            ->format('Y-m-d H:i:s'),
+            'cancelLink' => htmlspecialchars($payment['cancelLink'] ?? ''),
             'errors' => self::formatErrors($result['errors'] ?? []),
         ];
 
         // Add recurring info if applicable
-        if (!empty($payment['recurring'])) {
-            $data['recurringEnabled'] = (bool) $payment['recurring']['enabled'];
-            $data['recurringAmount'] = htmlspecialchars($payment['recurring']['amount'] ?? '');
-            $data['recurringPeriodLength'] = htmlspecialchars($payment['recurring']['periodLength'] ?? '1');
-            $data['recurringPeriodUnit'] = self::formatPeriodUnit($payment['recurring']['periodUnit'] ?? 'MONTH');
-            $data['recurringStartDateTime'] = htmlspecialchars($payment['recurring']['startDateTime'] ?? '');
-            $data['scheduleId'] = htmlspecialchars($result['scheduleId'] ?? '');
-            $data['scheduleStatus'] = htmlspecialchars($result['scheduleStatus'] ?? '');
+        if (!empty($result['scheduledData'])) {
+            $data['scheduleId'] = htmlspecialchars($result['scheduledData']['scheduleId'] ?? '');
+            $data['scheduleStatus'] = htmlspecialchars($result['scheduledData']['scheduleStatus'] ?? '');
+            $data['scheduledAt'] = htmlspecialchars(
+                isset($result['scheduledData']['scheduledAt'])
+                    ? $result['scheduledData']['scheduledAt']
+                    ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
+                    ->format('Y-m-d H:i:s')
+                    : ''
+            );
         }
 
         // Add callback data if provided
-        if (isset($payment['result'])) {
-            $data['uuid'] = htmlspecialchars($payment['uuid'] ?? '');
-            $data['purchaseId'] = htmlspecialchars($payment['purchaseId'] ?? '');
-            $data['transactionType'] = htmlspecialchars($payment['transactionType'] ?? '');
-            $data['result'] = htmlspecialchars($payment['result'] ?? '');
+        if (isset($result['result'])) {
+            $data['uuid'] = htmlspecialchars($result['uuid'] ?? '');
+            $data['purchaseId'] = htmlspecialchars($result['purchaseId'] ?? '');
+            $data['transactionType'] = htmlspecialchars($result['transactionType'] ?? '');
+            $data['result'] = htmlspecialchars($result['result'] ?? '');
         }
+
+        // Ensure scheduleId is available from multiple possible result shapes
+        if (empty($data['scheduleId'])) {
+            $data['scheduleId'] = htmlspecialchars($result['scheduleId'] ?? $result['scheduledData']['scheduleId'] ?? '');
+        }
+
+        // Determine cancellation status (normalize various adapter shapes)
+        $success = false;
+        if (isset($result['success'])) {
+            $success = (bool)$result['success'];
+        } elseif (isset($result['result'])) {
+            $r = strtoupper((string)$result['result']);
+            $success = in_array($r, ['SUCCESS', 'OK', 'TRUE', 'CANCELLED'], true);
+        } elseif (isset($result['status'])) {
+            $s = strtoupper((string)$result['status']);
+            $success = in_array($s, ['SUCCESS', 'OK', 'CANCELLED', 'TRUE'], true);
+        }
+
+        $data['cancellationStatus'] = $success ? 'Uspešno' : 'Neuspešno';
 
         return $data;
     }
@@ -201,12 +246,12 @@ final class MailTemplates
     private static function replacePlaceholders(string $text, array $payment, array $result = []): string
     {
         $replacements = [
-            '{transaction_id}' => $payment['merchantTransactionId'] ?? '',
+            '{transaction_id}' => $result['merchantTransactionId'] ?? '',
             '{schedule_id}' => $result['scheduleId'] ?? '',
-            '{amount}' => $payment['amount'] ?? '',
-            '{currency}' => $payment['currency'] ?? '',
-            '{first_name}' => $payment['first_name'] ?? '',
-            '{last_name}' => $payment['last_name'] ?? '',
+            '{amount}' => $result['amount'] ?? '',
+            '{currency}' => $result['currency'] ?? '',
+            '{first_name}' => $result['customer']['firstName'] ?? '',
+            '{last_name}' => $result['customer']['lastName'] ?? '',
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $text);

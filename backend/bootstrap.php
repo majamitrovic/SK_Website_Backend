@@ -3,6 +3,22 @@
 require_once __DIR__ . '/../src/bootstrap.php';
 
 use App\Config;
+use App\Logger;
+
+// Initialize logging system
+try {
+    if (Config::bool('ENABLE_LOGGING', true)) {
+        if (Config::bool('ENABLE_DATABASE_LOGGING', false)) {
+            $dbType = Config::get('DB_TYPE', 'sqlite');
+            $db = new \App\DatabaseManager($dbType);
+            Logger::initialize($db);
+        } else {
+            Logger::initialize();
+        }
+    }
+} catch (\Exception $e) {
+    error_log("Failed to initialize logging: " . $e->getMessage());
+}
 
 function api_allowed_origins()
 {

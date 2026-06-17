@@ -149,17 +149,59 @@ final class AllSecureService
 
     public function showSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->showSchedule($scheduleId));
+        $res = $this->client->showSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function pauseSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->pauseSchedule($scheduleId));
+        $res = $this->client->pauseSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function cancelSchedule($scheduleId)
     {
-        return self::scheduleResultToArray($this->client->cancelSchedule($scheduleId));
+        $res = $this->client->cancelSchedule($scheduleId);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public function continueSchedule($scheduleId, $continueDateTime)
@@ -169,29 +211,205 @@ final class AllSecureService
             ->setScheduleId($scheduleId)
             ->setContinueDateTime($continueDateTime ?: new \DateTime('+1 hour'));
 
-        return self::scheduleResultToArray($this->client->continueSchedule($schedule));
+        $res = $this->client->continueSchedule($schedule);
+        if (!$res) {
+            return array(
+                'success' => false,
+                'scheduleId' => null,
+                'registrationUuid' => null,
+                'oldStatus' => null,
+                'newStatus' => null,
+                'scheduledAt' => null,
+                'errorMessage' => 'No schedule response from gateway',
+                'errorCode' => null,
+            );
+        }
+
+        return self::scheduleResultToArray($res);
     }
 
     public static function transactionResultToArray(Result $result)
     {
+        $cardData = array();
+        $returnData = $result->getReturnData();
+        
+        if ($returnData) {
+            try {
+                $cardData = array(
+                    'type' => method_exists($returnData, 'getType') ? $returnData->getType() : null,
+                    'holder' => method_exists($returnData, 'getCardHolder') ? $returnData->getCardHolder() : null,
+                    'expiryMonth' => method_exists($returnData, 'getExpiryMonth') ? $returnData->getExpiryMonth() : null,
+                    'expiryYear' => method_exists($returnData, 'getExpiryYear') ? $returnData->getExpiryYear() : null,
+                    'firstSixDigits' => method_exists($returnData, 'getFirstSixDigits') ? $returnData->getFirstSixDigits() : null,
+                    'lastFourDigits' => method_exists($returnData, 'getLastFourDigits') ? $returnData->getLastFourDigits() : null,
+                    'fingerprint' => method_exists($returnData, 'getFingerprint') ? $returnData->getFingerprint() : null,
+                );
+            } catch (Throwable $e) {
+                // Card data not available
+            }
+        }
+        
+        $binData = array();
+        if ($returnData) {
+            try {
+                $binData = array(
+                    'brand' => method_exists($returnData, 'getBinBrand') ? $returnData->getBinBrand() : null,
+                    'bank' => method_exists($returnData, 'getBinBank') ? $returnData->getBinBank() : null,
+                    'type' => method_exists($returnData, 'getBinType') ? $returnData->getBinType() : null,
+                    'level' => method_exists($returnData, 'getBinLevel') ? $returnData->getBinLevel() : null,
+                    'country' => method_exists($returnData, 'getBinCountry') ? $returnData->getBinCountry() : null,
+                );
+            } catch (Throwable $e) {
+                // BIN data not available
+            }
+        }
+        
+        $threeDSecure = null;
+        $eci = null;
+        if ($returnData) {
+            try {
+                if (method_exists($returnData, 'getThreeDSecure')) {
+                    $threeDSecure = $returnData->getThreeDSecure();
+                }
+                if (method_exists($returnData, 'getEci')) {
+                    $eci = $returnData->getEci();
+                }
+            } catch (Throwable $e) {
+                // Security data not available
+            }
+        }
+        
+        $scheduleData = method_exists($result, 'getScheduleData')
+        ? $result->getScheduleData()
+        : null;
         return array(
             'success' => $result->isSuccess(),
             'returnType' => $result->getReturnType(),
             'uuid' => $result->getUuid(),
             'purchaseId' => $result->getPurchaseId(),
+            'transactionType' => method_exists($result, 'getTransactionType') ? $result->getTransactionType() : null,
+            'paymentMethod' => $result->getPaymentMethod(),
+            'amount' => method_exists($result, 'getAmount') ? $result->getAmount() : null,
+            'currency' => method_exists($result, 'getCurrency') ? $result->getCurrency() : null,
+            'card' => $cardData,
+            'threeDSecure' => $threeDSecure,
+            'eci' => $eci,
+            'bin' => $binData,
+            'extraData' => $result->getExtraData(),
             'redirectType' => $result->getRedirectType(),
             'redirectUrl' => $result->getRedirectUrl(),
             'htmlContent' => $result->getHtmlContent(),
-            'paymentMethod' => $result->getPaymentMethod(),
-            'scheduleId' => $result->getScheduleId(),
-            'scheduleStatus' => $result->getScheduleStatus(),
-            'scheduledAt' => $result->getScheduledAt(),
+            'scheduleId' => $scheduleData ? ($result->getScheduleId() ?? null) : null,
+            'scheduleStatus' => $scheduleData ? ($result->getScheduleStatus() ?? null) : null,
+            'scheduledAt' => $scheduleData ? ($result->getScheduledAt() ?? null) : null,
             'errors' => self::errorsToArray($result->getErrors()),
         );
     }
 
     public static function callbackResultToArray($callback)
     {
+        $scheduledData = array();
+        $scheduleData = method_exists($callback, 'getScheduleData')
+        ? $callback->getScheduleData()
+        : null;
+
+        if($scheduleData) {
+        try {
+        $scheduledData = array(
+            'scheduleId' => method_exists($scheduleData, 'getScheduleId') ? $scheduleData->getScheduleId() : null,
+            'scheduleStatus' => method_exists($scheduleData, 'getScheduleStatus') ? $scheduleData->getScheduleStatus() : null,
+            'scheduledAt' => method_exists($scheduleData, 'getScheduledAt') ? $scheduleData->getScheduledAt() : null,
+        );
+
+        } catch (Throwable $e) {
+            // Schedule data not available  
+        }
+        }
+        $cardData = array();
+        $returnData = null;
+        try {
+            if (method_exists($callback, 'getReturnData')) {
+                $returnData = $callback->getReturnData();
+            }
+        } catch (Throwable $e) {
+            // Return data not available
+        }
+        
+        if ($returnData) {
+            try {
+                $cardData = array(
+                    'type' => method_exists($returnData, 'getType') ? $returnData->getType() : null,
+                    'holder' => method_exists($returnData, 'getCardHolder') ? $returnData->getCardHolder() : null,
+                    'expiryMonth' => method_exists($returnData, 'getExpiryMonth') ? $returnData->getExpiryMonth() : null,
+                    'expiryYear' => method_exists($returnData, 'getExpiryYear') ? $returnData->getExpiryYear() : null,
+                    'firstSixDigits' => method_exists($returnData, 'getFirstSixDigits') ? $returnData->getFirstSixDigits() : null,
+                    'lastFourDigits' => method_exists($returnData, 'getLastFourDigits') ? $returnData->getLastFourDigits() : null,
+                    'fingerprint' => method_exists($returnData, 'getFingerprint') ? $returnData->getFingerprint() : null,
+                );
+            } catch (Throwable $e) {
+                // Card data not available
+            }
+        }
+        
+        $binData = array();
+        if ($returnData) {
+            try {
+                $binData = array(
+                    'brand' => method_exists($returnData, 'getBinBrand') ? $returnData->getBinBrand() : null,
+                    'bank' => method_exists($returnData, 'getBinBank') ? $returnData->getBinBank() : null,
+                    'type' => method_exists($returnData, 'getBinType') ? $returnData->getBinType() : null,
+                    'level' => method_exists($returnData, 'getBinLevel') ? $returnData->getBinLevel() : null,
+                    'country' => method_exists($returnData, 'getBinCountry') ? $returnData->getBinCountry() : null,
+                );
+            } catch (Throwable $e) {
+                // BIN data not available
+            }
+        }
+        
+        $threeDSecure = null;
+        $eci = null;
+        if ($returnData) {
+            try {
+                if (method_exists($returnData, 'getThreeDSecure')) {
+                    $threeDSecure = $returnData->getThreeDSecure();
+                }
+                if (method_exists($returnData, 'getEci')) {
+                    $eci = $returnData->getEci();
+                }
+            } catch (Throwable $e) {
+                // Security data not available
+            }
+        }
+        
+        $customerData = array();
+        $customer = null;
+        try {
+            if (method_exists($callback, 'getCustomer')) {
+                $customer = $callback->getCustomer();
+            }
+        } catch (Throwable $e) {
+            // Customer data not available
+        }
+        
+        if ($customer) {
+            try {
+                $emailVerified = false;
+                if (method_exists($customer, 'isEmailVerified')) {
+                    $emailVerified = $customer->isEmailVerified();
+                }
+                
+                $customerData = array(
+                    'identification' => method_exists($customer, 'getIdentification') ? $customer->getIdentification() : null,
+                    'firstName' => method_exists($customer, 'getFirstName') ? $customer->getFirstName() : null,
+                    'lastName' => method_exists($customer, 'getLastName') ? $customer->getLastName() : null,
+                    'emailVerified' => $emailVerified,
+                    'ipAddress' => method_exists($customer, 'getIpAddress') ? $customer->getIpAddress() : null,
+                );
+            } catch (Throwable $e) {
+                // Customer fields not available
+            }
+        }
+        
         return array(
             'result' => $callback->getResult(),
             'uuid' => $callback->getUuid(),
@@ -201,8 +419,14 @@ final class AllSecureService
             'paymentMethod' => $callback->getPaymentMethod(),
             'amount' => $callback->getAmount(),
             'currency' => $callback->getCurrency(),
-            'scheduleId' => $callback->getScheduleId(),
-            'scheduleStatus' => $callback->getScheduleStatus(),
+            'merchantMetaData' => $callback->getMerchantMetaData(),
+            'customer' => $customerData,
+            'card' => $cardData,
+            'threeDSecure' => $threeDSecure,
+            'eci' => $eci,
+            'bin' => $binData,
+            'extraData' => $callback->getExtraData(),
+            'scheduledData' => $scheduledData,
             'errorMessage' => $callback->getErrorMessage(),
             'errorCode' => $callback->getErrorCode(),
             'adapterMessage' => $callback->getAdapterMessage(),
@@ -213,6 +437,91 @@ final class AllSecureService
 
     public static function statusResultToArray($status)
     {
+        $cardData = array();
+        $returnData = null;
+        try {
+            if (method_exists($status, 'getReturnData')) {
+                $returnData = $status->getReturnData();
+            }
+        } catch (Throwable $e) {
+            // Return data not available
+        }
+        
+        if ($returnData) {
+            try {
+                $cardData = array(
+                    'type' => method_exists($returnData, 'getType') ? $returnData->getType() : null,
+                    'holder' => method_exists($returnData, 'getCardHolder') ? $returnData->getCardHolder() : null,
+                    'expiryMonth' => method_exists($returnData, 'getExpiryMonth') ? $returnData->getExpiryMonth() : null,
+                    'expiryYear' => method_exists($returnData, 'getExpiryYear') ? $returnData->getExpiryYear() : null,
+                    'firstSixDigits' => method_exists($returnData, 'getFirstSixDigits') ? $returnData->getFirstSixDigits() : null,
+                    'lastFourDigits' => method_exists($returnData, 'getLastFourDigits') ? $returnData->getLastFourDigits() : null,
+                    'fingerprint' => method_exists($returnData, 'getFingerprint') ? $returnData->getFingerprint() : null,
+                );
+            } catch (Throwable $e) {
+                // Card data not available
+            }
+        }
+        
+        $binData = array();
+        if ($returnData) {
+            try {
+                $binData = array(
+                    'brand' => method_exists($returnData, 'getBinBrand') ? $returnData->getBinBrand() : null,
+                    'bank' => method_exists($returnData, 'getBinBank') ? $returnData->getBinBank() : null,
+                    'type' => method_exists($returnData, 'getBinType') ? $returnData->getBinType() : null,
+                    'level' => method_exists($returnData, 'getBinLevel') ? $returnData->getBinLevel() : null,
+                    'country' => method_exists($returnData, 'getBinCountry') ? $returnData->getBinCountry() : null,
+                );
+            } catch (Throwable $e) {
+                // BIN data not available
+            }
+        }
+        
+        $threeDSecure = null;
+        $eci = null;
+        if ($returnData) {
+            try {
+                if (method_exists($returnData, 'getThreeDSecure')) {
+                    $threeDSecure = $returnData->getThreeDSecure();
+                }
+                if (method_exists($returnData, 'getEci')) {
+                    $eci = $returnData->getEci();
+                }
+            } catch (Throwable $e) {
+                // Security data not available
+            }
+        }
+        
+        $customerData = array();
+        $customer = null;
+        try {
+            if (method_exists($status, 'getCustomer')) {
+                $customer = $status->getCustomer();
+            }
+        } catch (Throwable $e) {
+            // Customer data not available
+        }
+        
+        if ($customer) {
+            try {
+                $emailVerified = false;
+                if (method_exists($customer, 'isEmailVerified')) {
+                    $emailVerified = $customer->isEmailVerified();
+                }
+                
+                $customerData = array(
+                    'identification' => method_exists($customer, 'getIdentification') ? $customer->getIdentification() : null,
+                    'firstName' => method_exists($customer, 'getFirstName') ? $customer->getFirstName() : null,
+                    'lastName' => method_exists($customer, 'getLastName') ? $customer->getLastName() : null,
+                    'emailVerified' => $emailVerified,
+                    'ipAddress' => method_exists($customer, 'getIpAddress') ? $customer->getIpAddress() : null,
+                );
+            } catch (Throwable $e) {
+                // Customer fields not available
+            }
+        }
+        
         return array(
             'success' => $status->isSuccess(),
             'transactionStatus' => $status->getTransactionStatus(),
@@ -223,6 +532,12 @@ final class AllSecureService
             'paymentMethod' => $status->getPaymentMethod(),
             'amount' => $status->getAmount(),
             'currency' => $status->getCurrency(),
+            'merchantMetaData' => $status->getMerchantMetaData(),
+            'customer' => $customerData,
+            'card' => $cardData,
+            'threeDSecure' => $threeDSecure,
+            'eci' => $eci,
+            'bin' => $binData,
             'incomingSettlementState' => $status->getIncomingSettlementState(),
             'schedules' => self::scheduleResultDataListToArray($status->getSchedules()),
             'errorMessage' => $status->getErrorMessage(),

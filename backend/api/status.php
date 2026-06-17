@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../bootstrap.php';
 
 use App\AllSecureService;
+use App\Config;
+use App\Logger;
 
 api_cors();
 
@@ -14,12 +16,43 @@ if ($merchantTransactionId === '') {
 
 try {
     $service = new AllSecureService();
+    $status = $service->statusByMerchantTransactionId($merchantTransactionId);
+
+    // Log status query
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logTransaction(array(
+            'type' => 'status_query',
+            'transaction_id' => $merchantTransactionId,
+            'payment_status' => $status['transactionStatus'] ?? null,
+            'uuid' => $status['uuid'] ?? null,
+            'success' => $status['success'] ?? false,
+            'payment_method' => $status['paymentMethod'] ?? null,
+            'card_last_four' => $status['cardLastFourDigits'] ?? null,
+            'auth_code' => $status['authCode'] ?? null,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ));
+    }
+
     api_json(200, array(
         'ok' => true,
         'merchantTransactionId' => $merchantTransactionId,
-        'status' => $service->statusByMerchantTransactionId($merchantTransactionId),
+        'status' => $status,
     ));
 } catch (Throwable $exception) {
+    // Log status query error
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logError(
+            'Status query failed: ' . $exception->getMessage(),
+            array(
+                'transaction_id' => $merchantTransactionId,
+                'exception' => get_class($exception),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+            ),
+            'error'
+        );
+    }
+
     api_json(500, array(
         'ok' => false,
         'merchantTransactionId' => $merchantTransactionId,

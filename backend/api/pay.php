@@ -5,6 +5,8 @@ require_once __DIR__ . '/../bootstrap.php';
 use App\AllSecureService;
 use App\PaymentStorage;
 use App\ValidationException;
+use App\Config;
+use App\Logger;
 
 api_cors();
 
@@ -14,7 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $service = new AllSecureService();
-    $payment = $service->createDebit(api_input());
+    $input = api_input();
+    $payment = $service->createDebit($input);
 
     PaymentStorage::append('transactions.jsonl', array(
         'merchantTransactionId' => $payment['merchantTransactionId'],
@@ -29,10 +32,44 @@ try {
         'scheduleStatus' => $payment['result']['scheduleStatus'],
         'paymentMethod' => $payment['result']['paymentMethod'],
         'errorCount' => count($payment['result']['errors']),
+        'customer_email' => $input['email'] ?? null,
+        'timestamp' => date('Y-m-d H:i:s'),
     ));
+
+    // Log successful transaction
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logTransaction(array(
+            'type' => 'debit_request',
+            'transaction_id' => $payment['merchantTransactionId'],
+            'timestamp' => date('Y-m-d H:i:s'),
+            'amount' => $payment['amount'],
+            'currency' => $payment['currency'],
+            'customer_email' => $input['email'] ?? null,
+            'success' => $payment['result']['success'],
+            'uuid' => $payment['result']['uuid'],
+            'purchase_id' => $payment['result']['purchaseId'],
+            'payment_method' => $payment['result']['paymentMethod'],
+            'schedule_id' => $payment['result']['scheduleId'],
+            'error_count' => count($payment['result']['errors']),
+            'errors' => !empty($payment['result']['errors']) ? implode(', ', array_map(function($e) { return $e['code'] . ': ' . $e['message']; }, $payment['result']['errors'])) : null,
+        ));
+    }
 
     api_json(200, array('ok' => true) + $payment);
 } catch (ValidationException $exception) {
+    // Log validation error
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logError(
+            'Payment validation failed',
+            array(
+                'errors' => $exception->errors(),
+                'file' => __FILE__,
+                'line' => __LINE__,
+            ),
+            'warning'
+        );
+    }
+
     api_json(422, array(
         'ok' => false,
         'message' => 'Please check the payment form.',
@@ -44,6 +81,21 @@ try {
         'exception' => get_class($exception),
         'message' => $exception->getMessage(),
     ));
+
+    // Log payment processing error
+    if (Config::bool('ENABLE_LOGGING')) {
+        Logger::logError(
+            'Payment processing failed: ' . $exception->getMessage(),
+            array(
+                'exception' => get_class($exception),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => $exception->getTraceAsString(),
+                'input_email' => $input['email'] ?? null,
+            ),
+            'critical'
+        );
+    }
 
     api_json(500, array(
         'ok' => false,

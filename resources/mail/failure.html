@@ -3,111 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plaćanje neuspešno</title>
+    <title>Neuspešno plaćanje</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
-        .header { background: #f44336; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .header { background: #E74C3C; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
         .content { background: white; padding: 20px; border-radius: 0 0 5px 5px; }
-        .status-badge { 
-            display: inline-block; 
-            background: #f44336; 
-            color: white; 
-            padding: 8px 15px; 
-            border-radius: 3px; 
-            margin-bottom: 20px;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        .compliance-section { 
-            background: #fff5f5; 
-            padding: 15px; 
-            border-left: 4px solid #f44336; 
-            margin: 20px 0;
-            border-radius: 3px;
-        }
-        .compliance-title {
-            font-weight: bold;
-            color: #f44336;
-            margin-bottom: 10px;
-        }
-        .detail-row { 
-            display: flex; 
-            justify-content: space-between; 
-            padding: 10px 0; 
-            border-bottom: 1px solid #ddd; 
-            line-height: 1.8;
-        }
+        .status-badge { display: inline-block; background: #E74C3C; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 20px; font-weight: bold; font-size: 16px; }
+        .compliance-section { background: #fff7f7; padding: 15px; border-left: 4px solid #cc0000; margin: 20px 0; border-radius: 3px; }
+        .compliance-title { font-weight: bold; color: #cc0000; margin-bottom: 10px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ddd; line-height: 1.8; }
         .detail-row:last-child { border-bottom: none; }
         .detail-label { font-weight: bold; min-width: 200px; }
         .detail-value { text-align: right; }
-        .error-section { 
-            background: #ffebee; 
-            padding: 15px; 
-            border-left: 4px solid #f44336; 
-            margin: 20px 0;
-            border-radius: 3px;
-        }
-        .error-title { font-weight: bold; color: #c62828; margin-bottom: 10px; }
-        .footer { 
-            background: #f0f0f0; 
-            padding: 15px; 
-            text-align: center; 
-            font-size: 12px; 
-            color: #666; 
-            margin-top: 20px; 
-            border-radius: 3px; 
-        }
+        .footer { background: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #666; margin-top: 20px; border-radius: 3px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Plaćanje neuspešno</h1>
+            <h1>Obaveštenje: neuspešno plaćanje</h1>
         </div>
         
         <div class="content">
             <p>Poštovani/a <?= $firstName ?> <?= $lastName ?>,</p>
             
-            <p>Nažalost, vaše plaćanje nije moglo biti obrađeno. Molimo vas da pregledate detalje ispod i pokušate ponovo.</p>
+            <div class="status-badge">✖ Plaćanje nije uspelo</div>
             
-            <!-- C1: Transaction Status -->
-            <div class="status-badge">✗ Plaćanje je neuspešno - NEUSPEŠNO</div>
-            
-            <!-- C2: Transaction Details Section -->
             <div class="compliance-section">
-                <div class="compliance-title">Detalji pokušaja transakcije:</div>
-                
+                <div class="compliance-title">Detalji neuspešnog plaćanja</div>
+
                 <div class="detail-row">
-                    <span class="detail-label">Referentni broj porudžbine:</span>
+                    <span class="detail-label">Broj transakcije:</span>
                     <span class="detail-value"><code><?= $merchantTransactionId ?></code></span>
                 </div>
-                
+
                 <div class="detail-row">
-                    <span class="detail-label">Pokušan iznos i valuta:</span>
-                    <span class="detail-value"><strong><?= $amount ?> <?= $currency ?></strong></span>
+                    <span class="detail-label">Iznos:</span>
+                    <span class="detail-value"><?= $amount ?> <?= $currency ?></span>
                 </div>
-                
+
                 <div class="detail-row">
-                    <span class="detail-label">Opis plaćanja:</span>
-                    <span class="detail-value"><?= $description ?></span>
+                    <span class="detail-label">Tip kartice:</span>
+                    <span class="detail-value"><?= $cardType ?> ****<?= $lastFour ?></span>
                 </div>
-                
+
                 <div class="detail-row">
-                    <span class="detail-label">Metod plaćanja:</span>
-                    <span class="detail-value"><?= $paymentMethod ?></span>
+                    <span class="detail-label">Autorizacioni kod:</span>
+                    <span class="detail-value"><?= $authCode ?></span>
                 </div>
-                
+
                 <div class="detail-row">
-                    <span class="detail-label">Datum i vreme pokušaja:</span>
+                    <span class="detail-label">Greške:</span>
+                    <span class="detail-value"><?= $errors ?></span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Datum i vreme:</span>
                     <span class="detail-value"><?= $transactionDate ?></span>
                 </div>
-            </div>
-            
-            <!-- Error Details -->
-            <div class="error-section">
-                <div class="error-title">Razlog neuspeha:</div>
-                <p><?= $errors ?></p>
             </div>
             
             <h3>Šta možete uraditi:</h3>
@@ -118,15 +72,11 @@
                 <li>Kontaktirajte vašu banku ako verujete da je odbijanje greška</li>
                 <li>Pokušajte ponovo sa drugom karticom</li>
             </ul>
-            
-            <p>Ako nastavite da doživljavate probleme, molimo vas da nas kontaktirate na <strong><?= $supportEmail ?></strong>. Evo nam da vam pomognemo!</p>
-            
-            <p>Srdan pozdrav,<br>Tim <?= $companyName ?></p>
+            <p>Ako želite da pokušate ponovo ili trebate pomoć, kontaktirajte <?= $supportEmail ?>.</p>
         </div>
         
         <div class="footer">
-            <p>Ovo je automatizovana e-pošta. Molimo vas da ne odgovarate direktno. Ukoliko trebate pomoć, kontaktirajte <?= $supportEmail ?></p>
-            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?>. Sva prava zadržana.</p>
+            <p>&copy; <?php echo date('Y'); ?> <?= $companyName ?></p>
         </div>
     </div>
 </body>

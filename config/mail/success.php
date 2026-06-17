@@ -12,6 +12,6 @@
  */
 
 return [
-    'subject' => 'Potvrda pla??anja - Transakcija {transaction_id}',
+    'subject' => 'Potvrda plaćanja - Transakcija {transaction_id}',
     'template' => 'success.html',
 ];
