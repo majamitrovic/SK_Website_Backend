@@ -143,13 +143,21 @@ final class EmailService
             return false;
         }
 
-        $subject = MailTemplates::getScheduleSubject($payment, $result);
-        $body = MailTemplates::getScheduleBody($payment, $result);
+        $subject = MailTemplates::getCancelSubject($payment, $result);
+        $body = MailTemplates::getCancelBody($payment, $result);
 
-        $sent = self::send($to, $subject, $body, 'schedule_cancellation', [
+        $adminEmail = Config::get('PAYMENT_ADMIN_EMAIL');
+        $bcc = [];
+        if (!empty($adminEmail) && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $bcc[] = $adminEmail;
+        }
+
+        $sent = self::send($to, $subject, $body, 'cancellation_confirmation', [
             'payment_id' => $result['merchantTransactionId'] ?? null,
             'customer_email' => $to,
-        ]);
+            'cancellation_success' => !empty($result['success']) || (isset($result['result']) && in_array(strtoupper($result['result']), ['SUCCESS','OK','TRUE'], true)),
+            'schedule_id' => $result['scheduleId'] ?? $result['scheduledData']['scheduleId'] ?? null,
+        ], $bcc);
 
         return $sent;
     }
@@ -157,7 +165,7 @@ final class EmailService
     /**
      * Send email using PHP mail function or configured SMTP
      */
-    private static function send($to, $subject, $body, $emailType = 'generic', array $context = [])
+    private static function send($to, $subject, $body, $emailType = 'generic', array $context = [], array $bcc = [])
     {
         // Validate email address
         if (!self::validateEmail($to)) {
@@ -178,9 +186,9 @@ final class EmailService
         
         try {
             if ($smtpHost) {
-                $result = self::sendViaSMTP($to, $subject, $body);
+                $result = self::sendViaSMTP($to, $subject, $body, $bcc);
             } else {
-                $result = self::sendViaPhpMail($to, $subject, $body);
+                $result = self::sendViaPhpMail($to, $subject, $body, $bcc);
             }
 
             // Log successful send
@@ -250,13 +258,16 @@ final class EmailService
     /**
      * Send email via PHP mail function
      */
-    private static function sendViaPhpMail($to, $subject, $body)
+    private static function sendViaPhpMail($to, $subject, $body, array $bcc = [])
     {
         $from = Config::get('MAIL_FROM_ADDRESS', 'noreply@example.com');
         $fromName = Config::get('MAIL_FROM_NAME', 'Payment System');
         
         $headers = "From: {$fromName} <{$from}>\r\n";
         $headers .= "Reply-To: {$from}\r\n";
+        if (!empty($bcc)) {
+            $headers .= "Bcc: " . implode(',', $bcc) . "\r\n";
+        }
         $headers .= "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
         $headers .= "X-Mailer: SK Website Payment System\r\n";
@@ -293,7 +304,7 @@ final class EmailService
     /**
      * Send email via SMTP
      */
-    private static function sendViaSMTP($to, $subject, $body)
+    private static function sendViaSMTP($to, $subject, $body, array $bcc = [])
     {
         $host = Config::get('MAIL_SMTP_HOST');
         $port = Config::get('MAIL_SMTP_PORT', 587);
@@ -415,9 +426,15 @@ final class EmailService
             fwrite($socket, "MAIL FROM:<{$from}>\r\n");
             fgets($socket, 515);
             
-            // RCPT TO
+            // RCPT TO for primary recipient
             fwrite($socket, "RCPT TO:<{$to}>\r\n");
             fgets($socket, 515);
+
+            // RCPT TO for any BCC addresses
+            foreach ($bcc as $bccAddr) {
+                fwrite($socket, "RCPT TO:<{$bccAddr}>\r\n");
+                fgets($socket, 515);
+            }
             
             // DATA
             fwrite($socket, "DATA\r\n");
@@ -426,6 +443,9 @@ final class EmailService
             // Build email headers
             $headers = "From: {$fromName} <{$from}>\r\n";
             $headers .= "To: {$to}\r\n";
+            if (!empty($bcc)) {
+                $headers .= "Bcc: " . implode(',', $bcc) . "\r\n";
+            }
             $headers .= "Subject: {$subject}\r\n";
             $headers .= "Reply-To: {$from}\r\n";
             $headers .= "MIME-Version: 1.0\r\n";

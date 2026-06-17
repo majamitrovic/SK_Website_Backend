@@ -71,6 +71,28 @@ final class MailTemplates
     }
 
     /**
+     * Get cancellation email subject
+     */
+    public static function getCancelSubject(array $payment, array $result): string
+    {
+        $config = self::loadConfig('cancel');
+        $subject = $config['subject'] ?? 'Potvrda otkazivanja pretplate - Transakcija {transaction_id}';
+
+        return self::replacePlaceholders($subject, $payment, $result);
+    }
+
+    /**
+     * Get cancellation email body
+     */
+    public static function getCancelBody(array $payment, array $result): string
+    {
+        $config = self::loadConfig('cancel');
+        $template = $config['template'] ?? 'cancel.html';
+
+        return self::renderTemplate($template, $payment, $result, 'cancel');
+    }
+
+    /**
      * Get callback email subject
      */
     public static function getCallbackSubject(array $callback): string
@@ -195,6 +217,25 @@ final class MailTemplates
             $data['transactionType'] = htmlspecialchars($result['transactionType'] ?? '');
             $data['result'] = htmlspecialchars($result['result'] ?? '');
         }
+
+        // Ensure scheduleId is available from multiple possible result shapes
+        if (empty($data['scheduleId'])) {
+            $data['scheduleId'] = htmlspecialchars($result['scheduleId'] ?? $result['scheduledData']['scheduleId'] ?? '');
+        }
+
+        // Determine cancellation status (normalize various adapter shapes)
+        $success = false;
+        if (isset($result['success'])) {
+            $success = (bool)$result['success'];
+        } elseif (isset($result['result'])) {
+            $r = strtoupper((string)$result['result']);
+            $success = in_array($r, ['SUCCESS', 'OK', 'TRUE', 'CANCELLED'], true);
+        } elseif (isset($result['status'])) {
+            $s = strtoupper((string)$result['status']);
+            $success = in_array($s, ['SUCCESS', 'OK', 'CANCELLED', 'TRUE'], true);
+        }
+
+        $data['cancellationStatus'] = $success ? 'Uspešno' : 'Neuspešno';
 
         return $data;
     }

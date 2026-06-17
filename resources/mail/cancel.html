@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Potvrda otkazivanja pretplate</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.5; }
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 6px; }
+        .header { background: #f44336; color: #fff; padding: 12px; border-radius: 4px; text-align: center; }
+        .content { background: #fff; padding: 20px; margin-top: 12px; border-radius: 4px; }
+        .footer { font-size: 12px; color: #666; margin-top: 18px; text-align: center; }
+        code { background: #f1f1f1; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+       
+
+        <div class="header"><h2>Otkazivanje pretplate</h2></div>
+        <div class="content">
+
+            <p>Poštovani/a, </p>
+            
+            <p>Status otkazivanja: <strong><?= $cancellationStatus ?></strong></p>
+
+            <?php if (!empty($scheduleId)): ?>
+                <p>Broj rasporeda: <code><?= $scheduleId ?></code></p>
+            <?php endif; ?>
+
+            <p>Broj transakcije: <code><?= $merchantTransactionId ?></code></p>
+
+            <p>Ako imate pitanja, obratite se na <strong><?= $supportEmail ?></strong>.</p>
+
+            <p>Srdačan pozdrav,<br>Tim <?= $companyName ?></p>
+        </div>
+        <div class="footer">&copy; <?php echo date('Y'); ?> <?= $companyName ?></div>
+    </div>
+</body>
+</html>
