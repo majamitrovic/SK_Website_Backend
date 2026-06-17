@@ -9,7 +9,7 @@ $merchantTransactionId = htmlspecialchars((string) ($_GET['merchant_transaction_
 // Prefer explicit APP_URL from environment, fall back to Config::baseUrl()
 $siteUrl = trim((string) Config::get('APP_URL', ''));
 if ($siteUrl === '') {
-    $siteUrl = Config::baseUrl();
+    $siteUrl = Config::baseFrontend();
 }
 
 ?>

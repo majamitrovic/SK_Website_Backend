@@ -65,10 +65,42 @@ final class Config
         return self::projectPath('storage' . ($path === '' ? '' : DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR)));
     }
 
-    public static function baseUrl()
+    /**
+     * Return configured backend base URL.
+     * Priority: BACKEND_BASE_URL, APP_URL, auto-detect.
+     */
+    public static function baseBackend()
     {
-        $configured = trim((string) self::get('APP_URL', ''));
+        $configured = trim((string) self::get('BACKEND_BASE_URL', ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
 
+        $configured = trim((string) self::get('APP_URL', ''));
+        if ($configured !== '' && strpos($configured, 'your-domain.example') === false) {
+            return rtrim($configured, '/');
+        }
+
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        $scheme = $https ? 'https' : 'http';
+        $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '127.0.0.1:8000';
+
+        return $scheme . '://' . $host;
+    }
+
+    /**
+     * Return configured frontend base URL.
+     * Priority: FRONTEND_BASE_URL, APP_URL, auto-detect.
+     */
+    public static function baseFrontend()
+    {
+        $configured = trim((string) self::get('FRONTEND_BASE_URL', ''));
+        if ($configured !== '' && strpos($configured, 'your-domain.example') === false) {
+            return rtrim($configured, '/');
+        }
+
+        $configured = trim((string) self::get('APP_URL', ''));
         if ($configured !== '' && strpos($configured, 'your-domain.example') === false) {
             return rtrim($configured, '/');
         }

@@ -668,9 +668,12 @@ final class AllSecureService
         return 'web-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
     }
 
-    private function url($path, array $query = array())
+    private function url($path, array $query = array(), $which = 'backend')
     {
-        $url = Config::baseUrl() . '/' . ltrim($path, '/');
+        $which = strtolower((string) $which);
+        $base = $which === 'frontend' ? Config::baseFrontend() : Config::baseBackend();
+
+        $url = rtrim($base, '/') . '/' . ltrim($path, '/');
 
         if ($query) {
             $url .= '?' . http_build_query($query);
