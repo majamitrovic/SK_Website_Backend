@@ -1,6 +1,17 @@
 <?php
 
+require_once __DIR__ . '/../src/bootstrap.php';
+
+use App\Config;
+
 $merchantTransactionId = htmlspecialchars((string) ($_GET['merchant_transaction_id'] ?? ''), ENT_QUOTES, 'UTF-8');
+
+// Prefer explicit APP_URL from environment, fall back to Config::baseUrl()
+$siteUrl = trim((string) Config::get('APP_URL', ''));
+if ($siteUrl === '') {
+    $siteUrl = Config::baseUrl();
+}
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -15,7 +26,7 @@ $merchantTransactionId = htmlspecialchars((string) ($_GET['merchant_transaction_
         <h1>Payment successful</h1>
         <?php if ($merchantTransactionId): ?>
             <p>Transaction: <code><?= $merchantTransactionId ?></code></p>
-            <a class="button-link" href="/status.php?merchant_transaction_id=<?= rawurlencode($merchantTransactionId) ?>">View status</a>
+            <a class="button-link" href="<?= htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8') ?>">Back to site</a>
         <?php endif; ?>
     </main>
 </body>
