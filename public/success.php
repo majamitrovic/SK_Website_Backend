@@ -18,15 +18,15 @@ if ($siteUrl === '') {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Payment successful</title>
+    <title>Uspešno plaćanje</title>
     <link rel="stylesheet" href="/assets/checkout.css">
 </head>
 <body>
     <main class="single-panel result success">
-        <h1>Payment successful</h1>
+        <h1>Uspešno plaćanje</h1>
         <?php if ($merchantTransactionId): ?>
             <p>Transaction: <code><?= $merchantTransactionId ?></code></p>
-            <a class="button-link" href="<?= htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8') ?>">Back to site</a>
+            <a class="button-link" href="<?= htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8') ?>">Povratak na sajt</a>
         <?php endif; ?>
     </main>
 </body>
