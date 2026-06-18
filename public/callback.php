@@ -231,10 +231,6 @@ Logger::logTransaction([
                 );
             }
         }
-
-        // Admin/internal notification remains unchanged
-        EmailService::sendCallbackNotification($callbackData);
-
     } catch (Throwable $emailException) {
         if (Config::bool('ENABLE_LOGGING')) {
             Logger::logError(
