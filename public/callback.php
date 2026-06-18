@@ -126,8 +126,9 @@ try {
     $callbackResult = $callbackData['result'];
     $merchantTransactionId = $callbackData['merchantTransactionId'];
     $scheduleId = $callbackData['scheduledData']['scheduleId'] ?? null;
+    $uuid = $callbackData['uuid'] ?? null;
     // Build payment data for templates and idempotency checks
-    $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
+    $customerEmail = $callbackData['customer']['email'] ?? getCustomerEmailFromTransaction($uuid);
 
     $paymentData = [
         'email' => $customerEmail,
@@ -296,7 +297,7 @@ Logger::logTransaction([
 /**
  * Helper function to get customer email from transaction records
  */
-function getCustomerEmailFromTransaction($merchantTransactionId)
+function getCustomerEmailFromTransaction($uuid)
 {
     $transactionFile = dirname(__DIR__) . '/storage/transactions.jsonl';
 
@@ -312,7 +313,7 @@ function getCustomerEmailFromTransaction($merchantTransactionId)
     while (($line = fgets($file)) !== false) {
         $record = json_decode(trim($line), true);
 
-        if (($record['merchantTransactionId'] ?? null) === $merchantTransactionId) {
+        if (($record['uuid'] ?? null) === $uuid) {
             fclose($file);
             return $record['customer_email'] ?? null;
         }
