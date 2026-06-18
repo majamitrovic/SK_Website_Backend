@@ -151,7 +151,7 @@ Logger::logTransaction([
         $signature = hash_hmac('sha256', $tokenPayload, $secret);
         $token = rtrim(strtr(base64_encode($tokenPayload . '|' . $signature), '+/', '-_'), '=');
         $paymentData['cancelToken'] = $token;
-        $paymentData['cancelLink'] = Config::baseUrl() . '/cancel_subscription.php?token=' . urlencode($token);
+        $paymentData['cancelLink'] = Config::baseBackend() . '/cancel_subscription.php?token=' . urlencode($token);
     }
 
     // Prefer explicit transaction/payment status when available (case-insensitive)
@@ -231,10 +231,6 @@ Logger::logTransaction([
                 );
             }
         }
-
-        // Admin/internal notification remains unchanged
-        EmailService::sendCallbackNotification($callbackData);
-
     } catch (Throwable $emailException) {
         if (Config::bool('ENABLE_LOGGING')) {
             Logger::logError(
