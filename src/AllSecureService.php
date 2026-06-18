@@ -533,6 +533,7 @@ final class AllSecureService
             'paymentMethod' => $status->getPaymentMethod(),
             'amount' => $status->getAmount(),
             'currency' => $status->getCurrency(),
+            'authCode' => method_exists($status, 'getAuthCode') ? $status->getAuthCode() : $status->getUuid(),
             'merchantMetaData' => $status->getMerchantMetaData(),
             'customer' => $customerData,
             'card' => $cardData,
