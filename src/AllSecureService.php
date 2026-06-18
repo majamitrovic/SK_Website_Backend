@@ -87,8 +87,8 @@ final class AllSecureService
             $schedule
                 ->setAmount($payment['recurring_amount'])
                 ->setCurrency($payment['currency'])
-                ->setPeriodLength($payment['recurring_period_length'])
-                ->setPeriodUnit($payment['recurring_period_unit'])
+                ->setPeriodLength($payment['recurring_period_length'] ?? 12)
+                ->setPeriodUnit($payment['recurring_period_unit'] ?? ScheduleWithTransaction::PERIOD_UNIT_MONTH)
                 ->setStartDateTime($payment['recurring_start_datetime'])
                 ->setMerchantMetaData(json_encode(array(
                     'merchantTransactionId' => $merchantTransactionId,
