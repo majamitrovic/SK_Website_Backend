@@ -87,9 +87,9 @@ final class AllSecureService
             $schedule
                 ->setAmount($payment['recurring_amount'])
                 ->setCurrency($payment['currency'])
-                ->setPeriodLength($payment['recurring_period_length'])
-                ->setPeriodUnit($payment['recurring_period_unit'])
-                ->setStartDateTime($payment['recurring_start_datetime'])
+                ->setPeriodLength($payment['recurring_period_length'] ?? 24)
+                ->setPeriodUnit($payment['recurring_period_unit'] ?? ScheduleWithTransaction::PERIOD_UNIT_MONTH)
+                ->setStartDateTime($payment['recurring_start_datetime'] ?? new \DateTime(+'1 month'))
                 ->setMerchantMetaData(json_encode(array(
                     'merchantTransactionId' => $merchantTransactionId,
                     'description' => $payment['description'],
@@ -108,9 +108,10 @@ final class AllSecureService
         }
 
         $result = $this->client->debit($debit);
-
+        $gatewayReferenceId = $result->getReferenceId();
         return array(
             'merchantTransactionId' => $merchantTransactionId,
+            'gatewayReferenceId' => $gatewayReferenceId,
             'amount' => $payment['amount'],
             'currency' => $payment['currency'],
             'recurring' => array(
@@ -668,9 +669,12 @@ final class AllSecureService
         return 'web-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
     }
 
-    private function url($path, array $query = array())
+    private function url($path, array $query = array(), $which = 'backend')
     {
-        $url = Config::baseUrl() . '/' . ltrim($path, '/');
+        $which = strtolower((string) $which);
+        $base = $which === 'frontend' ? Config::baseFrontend() : Config::baseBackend();
+
+        $url = rtrim($base, '/') . '/' . ltrim($path, '/');
 
         if ($query) {
             $url .= '?' . http_build_query($query);

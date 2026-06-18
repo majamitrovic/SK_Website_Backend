@@ -181,7 +181,7 @@ final class MailTemplates
             // Company info
             'companyName' => htmlspecialchars(Config::get('COMPANY_NAME', 'Our Company')),
             'supportEmail' => htmlspecialchars(Config::get('SUPPORT_EMAIL', 'support@example.com')),
-            'companyUrl' => htmlspecialchars(Config::baseUrl()),
+            'companyUrl' => htmlspecialchars(Config::baseFrontend()),
             
             // Result info (for success/failure)
             'paymentStatus' => $payment['paymentStatus'],
