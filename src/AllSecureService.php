@@ -554,7 +554,7 @@ final class AllSecureService
             'scheduleId' => $schedule->getScheduleId(),
             'registrationUuid' => $schedule->getRegistrationUuid(),
             'oldStatus' => $schedule->getOldStatus(),
-            'newStatus' => $schedule->getNewStatus(),
+            'newStatus' => $schedule->getNewStatus(),       
             'scheduledAt' => $schedule->getScheduledAt(),
             'errorMessage' => $schedule->getErrorMessage(),
             'errorCode' => $schedule->getErrorCode(),
@@ -716,6 +716,76 @@ final class AllSecureService
         }
 
         return $data;
+    }
+
+    /**
+     * Create a time-limited token for deregister links used in emails.
+     * Token format: merchantTransactionId|registrationUuid|expires|signature
+     */
+    public function createDeregisterToken(string $merchantTransactionId, string $registrationUuid, int $ttlSeconds = 86400): string
+    {
+        $expires = time() + $ttlSeconds;
+        $payload = $merchantTransactionId . '|' . $registrationUuid . '|' . $expires;
+        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
+        $signature = hash_hmac('sha256', $payload, $secret);
+
+        $token = $payload . '|' . $signature;
+
+        // base64url encode and strip padding
+        $b64 = base64_encode($token);
+        $b64 = rtrim($b64, '=');
+        $b64 = str_replace(['+','/'], ['-','_'], $b64);
+
+        return $b64;
+    }
+
+    /**
+     * Create a full URL to the public deregister endpoint including token.
+     */
+    public function createDeregisterUrl(string $merchantTransactionId, string $registrationUuid, int $ttlSeconds = 86400, string $which = 'frontend') : string
+    {
+        $token = $this->createDeregisterToken($merchantTransactionId, $registrationUuid, $ttlSeconds);
+        $path = '/deregister.php';
+        return $this->url($path, array('token' => $token), $which);
+    }
+
+    /**
+     * Attempt to deregister a stored registration/card using the client library.
+     * Tries common method names on the client to remain compatible with different SDKs.
+     */
+    public function deregisterRegistration(string $registrationUuid): array
+    {
+        $methodsToTry = array('deregisterRegistration', 'deregister', 'deleteRegistration', 'removeRegistration');
+
+        foreach ($methodsToTry as $m) {
+            if (method_exists($this->client, $m)) {
+                try {
+                    $res = $this->client->{$m}($registrationUuid);
+                    // If the SDK returns an object with ->isSuccess, try to normalise
+                    if (is_object($res) && method_exists($res, 'isSuccess')) {
+                        return array(
+                            'success' => $res->isSuccess(),
+                            'result' => $res,
+                        );
+                    }
+
+                    // If boolean or array returned, normalise
+                    if (is_bool($res)) {
+                        return array('success' => $res);
+                    }
+
+                    if (is_array($res)) {
+                        return array_merge(array('success' => true), $res);
+                    }
+
+                    return array('success' => true, 'result' => $res);
+                } catch (\Throwable $e) {
+                    return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
+                }
+            }
+        }
+
+        return array('success' => false, 'errorMessage' => 'Deregister method not available on client');
     }
 
     private static function scheduleResultDataListToArray(array $schedules)

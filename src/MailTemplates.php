@@ -194,6 +194,7 @@ final class MailTemplates
                             ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
                             ->format('Y-m-d H:i:s'),
             'cancelLink' => htmlspecialchars($payment['cancelLink'] ?? ''),
+            'deregisterLink' => htmlspecialchars($payment['deregisterLink'] ?? ''),
             'errors' => self::formatErrors($result['errors'] ?? []),
         ];
 

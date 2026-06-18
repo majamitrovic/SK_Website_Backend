@@ -154,6 +154,22 @@ Logger::logTransaction([
         $paymentData['cancelLink'] = Config::baseBackend() . '/cancel_subscription.php?token=' . urlencode($token);
     }
 
+    // If this is a scheduled transaction, create a deregister link for removing stored card
+    $registrationUuId = null;
+    if (!empty($scheduleId)) {
+        // prefer the result-level registrationId, fallback to scheduledData
+        $registrationUuId = $callbackData['uuid'] ?? null;
+    }
+    if (!empty($registrationUuId)) {
+        try {
+            $paymentData['deregisterLink'] = $service->createDeregisterUrl($merchantTransactionId, $registrationUuId);
+        } catch (Throwable $e) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError('Failed to create deregister link: ' . $e->getMessage(), ['transaction' => $merchantTransactionId], 'warning');
+            }
+        }
+    }
+
     // Prefer explicit transaction/payment status when available (case-insensitive)
     $paymentStatus = null;
     if (method_exists($callback, 'getTransactionStatus')) {
