@@ -108,10 +108,8 @@ final class AllSecureService
         }
 
         $result = $this->client->debit($debit);
-        $gatewayReferenceId = $result->getReferenceId();
         return array(
             'merchantTransactionId' => $merchantTransactionId,
-            'gatewayReferenceId' => $gatewayReferenceId,
             'amount' => $payment['amount'],
             'currency' => $payment['currency'],
             'recurring' => array(
