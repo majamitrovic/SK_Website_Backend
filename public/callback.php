@@ -126,8 +126,9 @@ try {
     $callbackResult = $callbackData['result'];
     $merchantTransactionId = $callbackData['merchantTransactionId'];
     $scheduleId = $callbackData['scheduledData']['scheduleId'] ?? null;
+    $uuid = $callbackData['uuid'] ?? null;
     // Build payment data for templates and idempotency checks
-    $customerEmail = getCustomerEmailFromTransaction($merchantTransactionId);
+    $customerEmail = $callbackData['customer']['email'] ?? getCustomerEmailFromTransaction($uuid);
 
     $paymentData = [
         'email' => $customerEmail,
@@ -152,6 +153,22 @@ Logger::logTransaction([
         $token = rtrim(strtr(base64_encode($tokenPayload . '|' . $signature), '+/', '-_'), '=');
         $paymentData['cancelToken'] = $token;
         $paymentData['cancelLink'] = Config::baseBackend() . '/cancel_subscription.php?token=' . urlencode($token);
+    }
+
+    // If this is a scheduled transaction, create a deregister link for removing stored card
+    $registrationUuId = null;
+    if (!empty($scheduleId)) {
+        // prefer the result-level registrationId, fallback to scheduledData
+        $registrationUuId = $callbackData['uuid'] ?? null;
+    }
+    if (!empty($registrationUuId)) {
+        try {
+            $paymentData['deregisterLink'] = $service->createDeregisterUrl($merchantTransactionId, $registrationUuId);
+        } catch (Throwable $e) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError('Failed to create deregister link: ' . $e->getMessage(), ['transaction' => $merchantTransactionId], 'warning');
+            }
+        }
     }
 
     // Prefer explicit transaction/payment status when available (case-insensitive)
@@ -280,7 +297,7 @@ Logger::logTransaction([
 /**
  * Helper function to get customer email from transaction records
  */
-function getCustomerEmailFromTransaction($merchantTransactionId)
+function getCustomerEmailFromTransaction($uuid)
 {
     $transactionFile = dirname(__DIR__) . '/storage/transactions.jsonl';
 
@@ -296,7 +313,7 @@ function getCustomerEmailFromTransaction($merchantTransactionId)
     while (($line = fgets($file)) !== false) {
         $record = json_decode(trim($line), true);
 
-        if (($record['merchantTransactionId'] ?? null) === $merchantTransactionId) {
+        if (($record['uuid'] ?? null) === $uuid) {
             fclose($file);
             return $record['customer_email'] ?? null;
         }

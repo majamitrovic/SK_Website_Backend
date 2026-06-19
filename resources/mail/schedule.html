@@ -140,6 +140,9 @@
             <div class="action-section">
                 <p style="margin-top: 0;"><strong>Upravljanje svojom pretplatom:</strong></p>
                 <a href="<?= $cancelLink ?>" class="cancel-btn">Otkaži pretplatu</a>
+                <?php if (!empty($deregisterLink)): ?>
+                <a href="<?= $deregisterLink ?>" class="manage-btn">Ukloni sačuvanu karticu</a>
+                <?php endif; ?>
                 <p style="margin-bottom: 0; font-size: 12px; color: #666;">Ako imate pitanja, kontaktirajte nas na <strong><?= $supportEmail ?></strong></p>
             </div>
             
