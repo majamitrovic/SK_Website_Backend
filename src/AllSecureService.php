@@ -747,7 +747,7 @@ final class AllSecureService
     {
         $token = $this->createDeregisterToken($merchantTransactionId, $registrationUuid, $ttlSeconds);
         $path = '/deregister.php';
-        return $this->url($path, array('token' => $token), $which);
+        return $this->url($path, array('token' => $token));
     }
 
     /**
