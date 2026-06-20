@@ -76,9 +76,9 @@ final class AllSecureService
             ->setCurrency($payment['currency'])
             ->setDescription($payment['description'])
             ->setCustomer($customer)
-            ->setSuccessUrl($this->url('/success.php', array('merchant_transaction_id' => $merchantTransactionId)))
-            ->setCancelUrl($this->url('/cancel.php', array('merchant_transaction_id' => $merchantTransactionId)))
-            ->setErrorUrl($this->url('/error.php', array('merchant_transaction_id' => $merchantTransactionId)))
+            ->setSuccessUrl($this->url('detalji-donacije', array('merchant_transaction_id' => $merchantTransactionId), 'frontend'))
+            ->setCancelUrl($this->url('/detalji-donacije', array('merchant_transaction_id' => $merchantTransactionId), 'frontend'))
+            ->setErrorUrl($this->url('/detalji-donacije', array('merchant_transaction_id' => $merchantTransactionId), 'frontend'))
             ->setCallbackUrl($this->url('/callback.php'))
             ->setTransactionIndicator(Debit::TRANSACTION_INDICATOR_SINGLE);
 
