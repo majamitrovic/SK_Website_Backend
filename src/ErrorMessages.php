@@ -68,11 +68,11 @@ final class ErrorMessages
             'en' => 'Payment cancelled by user.',
         ),
         2003 => array(
-            'sr' => 'Plaćanje je odbijena. Molimo pokušajte sa drugom karticom ili metodom.',
+            'sr' => 'Plaćanje je odbijeno. Molimo pokušajte sa drugom karticom ili metodom.',
             'en' => 'Transaction declined. Please try another card or payment method.',
         ),
         2004 => array(
-            'sr' => 'Dostignut ste limit za ovu transakciju.',
+            'sr' => 'Dostignut je limit za ovu transakciju.',
             'en' => 'Quota limit reached.',
         ),
         2005 => array(
@@ -132,7 +132,7 @@ final class ErrorMessages
             'en' => 'BIC code is invalid.',
         ),
         2019 => array(
-            'sr' => 'Podaci kupца nisu validni.',
+            'sr' => 'Podaci kupcа nisu validni.',
             'en' => 'Customer data are invalid.',
         ),
         2020 => array(
@@ -140,7 +140,7 @@ final class ErrorMessages
             'en' => 'CVV code is required.',
         ),
         2021 => array(
-            'sr' => 'Autentifikacija kartrice je neuspešna. Pokušajte ponovo ili koristite drugu kartiću.',
+            'sr' => 'Autentifikacija kartrice je neuspešna. Pokušajte ponovo ili koristite drugu karticu.',
             'en' => '3D-Secure verification failed. Please try again or use another card.',
         ),
         2022 => array(
@@ -176,12 +176,12 @@ final class ErrorMessages
             'en' => 'Registration ID is not valid.',
         ),
         7030 => array(
-            'sr' => 'Referentna transakcija nije registracija.',
-            'en' => 'Reference transaction is not a register.',
+            'sr' => 'Referentna transakcija nije registrovana.',
+            'en' => 'Reference transaction is not registered.',
         ),
         7035 => array(
-            'sr' => 'Početna transakcija nije registracija.',
-            'en' => 'Initial transaction is not a register.',
+            'sr' => 'Početna transakcija nije registrovana.',
+            'en' => 'Initial transaction is not registered.',
         ),
         7036 => array(
             'sr' => 'Razlika između početne i druge transakcije mora biti veća od 24 sata.',

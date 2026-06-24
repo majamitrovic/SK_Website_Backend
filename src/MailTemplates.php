@@ -281,15 +281,5 @@ final class MailTemplates
         return $units[strtoupper($unit)] ?? 'month';
     }
 
-    /**
-     * Format error messages from payment result
-     */
-    /**
-     * Format errors for email display
-     * @deprecated Use ErrorService::formatForEmail() instead
-     */
-    private static function formatErrors(array $errors): string
-    {
-        return ErrorService::formatForEmail($errors);
-    }
+  
 }

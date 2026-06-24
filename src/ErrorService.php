@@ -63,9 +63,7 @@ final class ErrorService
         $messages = array();
 
         foreach ($errors as $error) {
-            $errorCode = (int) ($error->getCode() ?? $error['code'] ?? 0);
-            $translatedMessage = ErrorMessages::translate($errorCode, $language);
-            $messages[] = $translatedMessage;
+            $messages[] = $error['message'];
         }
 
         return implode('; ', $messages);
