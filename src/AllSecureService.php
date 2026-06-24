@@ -798,7 +798,10 @@ final class AllSecureService
             $data[] = array(
                 'scheduleId' => $schedule->getScheduleId(),
                 'scheduleStatus' => $schedule->getScheduleStatus(),
-                'scheduledAt' => $scheduledAt instanceof \DateTime ? $scheduledAt->format(\DateTime::ATOM) : $scheduledAt,
+                'scheduledAt' => $scheduledAt  ? $scheduledAt
+                  ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
+                  ->format('Y-m-d H:i:s') : null
+  
             );
         }
 
