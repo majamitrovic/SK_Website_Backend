@@ -128,7 +128,7 @@ try {
     $scheduleId = $callbackData['scheduledData']['scheduleId'] ?? null;
     $uuid = $callbackData['uuid'] ?? null;
     // Build payment data for templates and idempotency checks
-    $customerEmail = $callbackData['customer']['email'] ?? getCustomerEmailFromTransaction($uuid);
+    $customerEmail = $callbackData['customer']['identification'] ?? getCustomerEmailFromTransaction($uuid);
 
     $paymentData = [
         'email' => $customerEmail,
