@@ -115,6 +115,39 @@ final class PaymentStorage
         return null;
     }
 
+      /**
+     * Retrieve stored transactions by merchantId
+     *
+     * Returns null if not found or file not readable.
+     */
+    public static function getTransaction(string $merchantTransactionId): ?array
+    {
+        $path = Config::storagePath('transactions.jsonl');
+        if (!is_readable($path)) {
+            return null;
+        }
+
+        $fp = fopen($path, 'r');
+        if (!$fp) {
+            return null;
+        }
+
+        while (($line = fgets($fp)) !== false) {
+            $rec = json_decode(trim($line), true);
+            if (!is_array($rec)) {
+                continue;
+            }
+
+            if ((($rec['merchantTransactionId'] ?? null) === $merchantTransactionId)) {
+                fclose($fp);
+                return $rec ?? null;
+            }
+        }
+
+        fclose($fp);
+        return null;
+    }
+
     /**
      * Check whether a cancel token was already used
      */
