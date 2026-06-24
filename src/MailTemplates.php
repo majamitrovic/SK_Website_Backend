@@ -195,7 +195,7 @@ final class MailTemplates
                             ->format('Y-m-d H:i:s'),
             'cancelLink' => htmlspecialchars($payment['cancelLink'] ?? ''),
             'deregisterLink' => htmlspecialchars($payment['deregisterLink'] ?? ''),
-            'errors' => self::formatErrors($result['errors'] ?? []),
+            'errors' => ErrorService::formatForEmail($result['errors'] ?? []),
         ];
 
         // Add recurring info if applicable
@@ -284,17 +284,12 @@ final class MailTemplates
     /**
      * Format error messages from payment result
      */
+    /**
+     * Format errors for email display
+     * @deprecated Use ErrorService::formatForEmail() instead
+     */
     private static function formatErrors(array $errors): string
     {
-        if (empty($errors)) {
-            return 'Unfortunately, your payment could not be processed. Please check your card details and try again.';
-        }
-        
-        $messages = [];
-        foreach ($errors as $error) {
-            $messages[] = $error['message'] ?? $error['adapterMessage'] ?? 'Unknown error';
-        }
-        
-        return implode('; ', $messages);
+        return ErrorService::formatForEmail($errors);
     }
 }

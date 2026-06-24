@@ -301,7 +301,7 @@ final class AllSecureService
             'scheduleId' => $scheduleData ? ($result->getScheduleId() ?? null) : null,
             'scheduleStatus' => $scheduleData ? ($result->getScheduleStatus() ?? null) : null,
             'scheduledAt' => $scheduleData ? ($result->getScheduledAt() ?? null) : null,
-            'errors' => self::errorsToArray($result->getErrors()),
+            'errors' => ErrorService::formatForApi($result->getErrors()),
         );
     }
 
@@ -430,12 +430,14 @@ final class AllSecureService
             'errorCode' => $callback->getErrorCode(),
             'adapterMessage' => $callback->getAdapterMessage(),
             'adapterCode' => $callback->getAdapterCode(),
-            'errors' => self::errorsToArray($callback->getErrors()),
+            'errors' => ErrorService::formatForApi($callback->getErrors()),
         );
     }
 
     public static function statusResultToArray($status)
     {
+        
+
         $cardData = array();
         $returnData = null;
         try {
@@ -540,9 +542,7 @@ final class AllSecureService
             'bin' => $binData,
             'incomingSettlementState' => $status->getIncomingSettlementState(),
             'schedules' => self::scheduleResultDataListToArray($status->getSchedules()),
-            'errorMessage' => $status->getErrorMessage(),
-            'errorCode' => $status->getErrorCode(),
-            'errors' => self::errorsToArray($status->getErrors()),
+            'errors' => ErrorService::formatForApi($status->getErrors()),
         );
     }
 
@@ -701,22 +701,7 @@ final class AllSecureService
         return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null;
     }
 
-    private static function errorsToArray(array $errors)
-    {
-        $data = array();
-
-        foreach ($errors as $error) {
-            $data[] = array(
-                'message' => $error->getMessage(),
-                'code' => $error->getCode(),
-                'adapterMessage' => $error->getAdapterMessage(),
-                'adapterCode' => $error->getAdapterCode(),
-            );
-        }
-
-        return $data;
-    }
-
+   
     /**
      * Create a time-limited token for deregister links used in emails.
      * Token format: merchantTransactionId|registrationUuid|expires|signature
