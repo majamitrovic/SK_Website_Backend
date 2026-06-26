@@ -186,7 +186,7 @@ final class MailTemplates
             // Result info (for success/failure)
             'paymentStatus' => $payment['paymentStatus'],
             'paymentMethod' => htmlspecialchars(self::formatPaymentMethod($result['paymentMethod'] ?? 'Card')),
-            'authCode' => htmlspecialchars($result['authCode'] ?? $result['uuid'] ?? ''),
+            'authCode' => htmlspecialchars($result['extraData']['authCode'] ?? $result['uuid'] ?? ''),
             'card' => $result['card'] ?? [],
             'lastFour' => htmlspecialchars($result['card']['lastFourDigits'] ?? ''),
             'cardType' => htmlspecialchars($result['card']['type'] ?? ''),

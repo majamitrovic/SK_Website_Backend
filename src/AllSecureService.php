@@ -281,6 +281,7 @@ final class AllSecureService
         $scheduleData = method_exists($result, 'getScheduleData')
         ? $result->getScheduleData()
         : null;
+        $extraData = $result->getExtraData();
         return array(
             'success' => $result->isSuccess(),
             'returnType' => $result->getReturnType(),
@@ -290,11 +291,12 @@ final class AllSecureService
             'paymentMethod' => $result->getPaymentMethod(),
             'amount' => method_exists($result, 'getAmount') ? $result->getAmount() : null,
             'currency' => method_exists($result, 'getCurrency') ? $result->getCurrency() : null,
+            'authCode' => $extraData['authCode'] ?? $result->getUuid(),
             'card' => $cardData,
             'threeDSecure' => $threeDSecure,
             'eci' => $eci,
             'bin' => $binData,
-            'extraData' => $result->getExtraData(),
+            'extraData' => $extraData,
             'redirectType' => $result->getRedirectType(),
             'redirectUrl' => $result->getRedirectUrl(),
             'htmlContent' => $result->getHtmlContent(),
@@ -409,6 +411,7 @@ final class AllSecureService
             }
         }
         
+        $extraData = $callback->getExtraData();
         return array(
             'result' => $callback->getResult(),
             'uuid' => $callback->getUuid(),
@@ -424,7 +427,7 @@ final class AllSecureService
             'threeDSecure' => $threeDSecure,
             'eci' => $eci,
             'bin' => $binData,
-            'extraData' => $callback->getExtraData(),
+            'extraData' => $extraData,
             'scheduledData' => $scheduledData,
             'errorMessage' => $callback->getErrorMessage(),
             'errorCode' => $callback->getErrorCode(),
@@ -523,6 +526,7 @@ final class AllSecureService
             }
         }
         
+        $extraData = $status->getExtraData();
         return array(
             'success' => $status->isSuccess(),
             'transactionStatus' => $status->getTransactionStatus(),
@@ -533,7 +537,7 @@ final class AllSecureService
             'paymentMethod' => $status->getPaymentMethod(),
             'amount' => $status->getAmount(),
             'currency' => $status->getCurrency(),
-            'authCode' => method_exists($status, 'getAuthCode') ? $status->getAuthCode() : $status->getUuid(),
+            'authCode' => $extraData['authCode'] ?? $status->getUuid(),
             'merchantMetaData' => $status->getMerchantMetaData(),
             'customer' => $customerData,
             'card' => $cardData,
