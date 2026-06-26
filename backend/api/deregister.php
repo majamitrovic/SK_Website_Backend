@@ -69,7 +69,7 @@ if (PaymentStorage::tokenWasUsed($token)) {
 try {
     $service = new AllSecureService();
 
-    $result = $service->deregisterRegistration($registrationUuid);
+    $result = $service->deregisterRegistration($merchantTransactionId, $registrationUuid);
 
     PaymentStorage::append('deregister_results.jsonl', [
         'merchantTransactionId' => $merchantTransactionId,

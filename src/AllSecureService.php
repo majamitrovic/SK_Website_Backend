@@ -763,39 +763,31 @@ final class AllSecureService
      * Attempt to deregister a stored registration/card using the client library.
      * Tries common method names on the client to remain compatible with different SDKs.
      */
-    public function deregisterRegistration(string $registrationUuid): array
+    public function deregisterRegistration(string $merchantTransactionId, string $registrationUuid): array
     {
-        $methodsToTry = array('deregisterRegistration', 'deregister', 'deleteRegistration', 'removeRegistration');
-
-        foreach ($methodsToTry as $m) {
-            if (method_exists($this->client, $m)) {
-                try {
-                    $res = $this->client->{$m}($registrationUuid);
-                    // If the SDK returns an object with ->isSuccess, try to normalise
-                    if (is_object($res) && method_exists($res, 'isSuccess')) {
-                        return array(
-                            'success' => $res->isSuccess(),
-                            'result' => $res,
-                        );
-                    }
-
-                    // If boolean or array returned, normalise
-                    if (is_bool($res)) {
-                        return array('success' => $res);
-                    }
-
-                    if (is_array($res)) {
-                        return array_merge(array('success' => true), $res);
-                    }
-
-                    return array('success' => true, 'result' => $res);
-                } catch (\Throwable $e) {
-                    return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
-                }
+        try {
+            $res = $this->client->deregister($merchantTransactionId, $registrationUuid);
+            // If the SDK returns an object with ->isSuccess, try to normalise
+            if (is_object($res) && method_exists($res, 'isSuccess')) {
+                return array(
+                    'success' => $res->isSuccess(),
+                    'result' => $res,
+                );
             }
-        }
 
-        return array('success' => false, 'errorMessage' => 'Deregister method not available on client');
+            // If boolean or array returned, normalise
+            if (is_bool($res)) {
+                return array('success' => $res);
+            }
+
+            if (is_array($res)) {
+                return array_merge(array('success' => true), $res);
+            }
+
+            return array('success' => true, 'result' => $res);
+        } catch (\Throwable $e) {
+            return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
+        }
     }
 
     private static function scheduleResultDataListToArray(array $schedules)
