@@ -707,24 +707,31 @@ final class AllSecureService
 
    
     /**
+     * Create a time-limited token for cancel links used in emails.
+     * Token format: cancel|merchantTransactionId|scheduleId|expires|signature
+     */
+    public function createCancelToken(string $merchantTransactionId, string $scheduleId, int $ttlSeconds = 86400): string
+    {
+        return $this->createActionToken('cancel', array($merchantTransactionId, $scheduleId), $ttlSeconds);
+    }
+
+    /**
+     * Create a full URL to the public cancellation endpoint including token.
+     */
+    public function createCancelUrl(string $merchantTransactionId, string $scheduleId, int $ttlSeconds = 86400): string
+    {
+        $token = $this->createCancelToken($merchantTransactionId, $scheduleId, $ttlSeconds);
+        $path = '/cancel_subscription.php';
+        return $this->url($path, array('token' => $token));
+    }
+
+    /**
      * Create a time-limited token for deregister links used in emails.
-     * Token format: merchantTransactionId|registrationUuid|expires|signature
+     * Token format: deregister|merchantTransactionId|registrationUuid|expires|signature
      */
     public function createDeregisterToken(string $merchantTransactionId, string $registrationUuid, int $ttlSeconds = 86400): string
     {
-        $expires = time() + $ttlSeconds;
-        $payload = $merchantTransactionId . '|' . $registrationUuid . '|' . $expires;
-        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
-        $signature = hash_hmac('sha256', $payload, $secret);
-
-        $token = $payload . '|' . $signature;
-
-        // base64url encode and strip padding
-        $b64 = base64_encode($token);
-        $b64 = rtrim($b64, '=');
-        $b64 = str_replace(['+','/'], ['-','_'], $b64);
-
-        return $b64;
+        return $this->createActionToken('deregister', array($merchantTransactionId, $registrationUuid), $ttlSeconds);
     }
 
     /**
@@ -735,6 +742,21 @@ final class AllSecureService
         $token = $this->createDeregisterToken($merchantTransactionId, $registrationUuid, $ttlSeconds);
         $path = '/deregister.php';
         return $this->url($path, array('token' => $token));
+    }
+
+    private function createActionToken(string $action, array $parts, int $ttlSeconds): string
+    {
+        $expires = time() + $ttlSeconds;
+        $payload = $action . '|' . implode('|', $parts) . '|' . $expires;
+        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
+        $signature = hash_hmac('sha256', $payload, $secret);
+
+        return $this->base64UrlEncode($payload . '|' . $signature);
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
     /**

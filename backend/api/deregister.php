@@ -30,14 +30,20 @@ if ($decoded === false) {
     exit;
 }
 
-$parts = explode('|', $decoded);
-if (count($parts) < 4) {
+$parts = explode('|', $decoded, 5);
+if (count($parts) < 5) {
     http_response_code(400);
     echo 'Invalid token format';
     exit;
 }
 
-list($merchantTransactionId, $registrationUuid, $expires, $signature) = $parts;
+list($tokenType, $merchantTransactionId, $registrationUuid, $expires, $signature) = $parts;
+
+if ($tokenType !== 'deregister') {
+    http_response_code(400);
+    echo 'Invalid token type';
+    exit;
+}
 
 if ((int)$expires < time()) {
     http_response_code(400);
@@ -46,7 +52,7 @@ if ((int)$expires < time()) {
 }
 
 $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
-$payload = $merchantTransactionId . '|' . $registrationUuid . '|' . $expires;
+$payload = $tokenType . '|' . $merchantTransactionId . '|' . $registrationUuid . '|' . $expires;
 $expected = hash_hmac('sha256', $payload, $secret);
 if (!hash_equals($expected, $signature)) {
     http_response_code(400);

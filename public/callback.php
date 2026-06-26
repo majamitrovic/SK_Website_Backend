@@ -146,27 +146,27 @@ Logger::logTransaction([
 
     // If a schedule exists, create a short-lived HMAC token for cancellation links
     if (!empty($scheduleId)) {
-        $expires = time() + (60 * 60 * 24 * 7); // 7 days
-        $tokenPayload = $merchantTransactionId . '|' . $scheduleId . '|' . $expires;
-        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
-        $signature = hash_hmac('sha256', $tokenPayload, $secret);
-        $token = rtrim(strtr(base64_encode($tokenPayload . '|' . $signature), '+/', '-_'), '=');
+        $token = $service->createCancelToken($merchantTransactionId, $scheduleId, 60 * 60 * 24 * 7);
         $paymentData['cancelToken'] = $token;
         $paymentData['cancelLink'] = Config::baseBackend() . '/cancel_subscription.php?token=' . urlencode($token);
     }
 
     // If this is a scheduled transaction, create a deregister link for removing stored card
-    $registrationUuId = null;
     if (!empty($scheduleId)) {
-        // prefer the result-level registrationId, fallback to scheduledData
         $registrationUuId = $callbackData['uuid'] ?? null;
-    }
-    if (!empty($registrationUuId)) {
-        try {
-            $paymentData['deregisterLink'] = $service->createDeregisterUrl($merchantTransactionId, $registrationUuId);
-        } catch (Throwable $e) {
-            if (Config::bool('ENABLE_LOGGING')) {
-                Logger::logError('Failed to create deregister link: ' . $e->getMessage(), ['transaction' => $merchantTransactionId], 'warning');
+
+        if (empty($registrationUuId)) {
+            $scheduleDetails = $service->showSchedule($scheduleId);
+            $registrationUuId = $scheduleDetails['registrationUuid'] ?? null;
+        }
+
+        if (!empty($registrationUuId)) {
+            try {
+                $paymentData['deregisterLink'] = $service->createDeregisterUrl($merchantTransactionId, $registrationUuId);
+            } catch (Throwable $e) {
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logError('Failed to create deregister link: ' . $e->getMessage(), ['transaction' => $merchantTransactionId], 'warning');
+                }
             }
         }
     }
