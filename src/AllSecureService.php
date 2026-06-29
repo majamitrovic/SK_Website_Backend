@@ -768,7 +768,7 @@ final class AllSecureService
         try {
             $deregister = new Deregister();
             $deregister
-                ->setMerchantTransactionId($merchantTransactionId)
+                ->setMerchantTransactionId('deregister-' . $merchantTransactionId)
                 ->setReferenceUuid($registrationUuid);
             
             $res = $this->client->deregister($deregister);
