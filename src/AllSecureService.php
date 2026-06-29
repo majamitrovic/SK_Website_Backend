@@ -767,11 +767,11 @@ final class AllSecureService
     {
         try {
             $deregister = new Deregister();
-         
-            $res = $this->client->deregister([
-                'merchantTransactionId' => $merchantTransactionId,
-                'referenceUuid' => $registrationUuid,
-            ]); 
+            $deregister
+                ->setMerchantTransactionId($merchantTransactionId)
+                ->setReferenceUuid($registrationUuid);
+            
+            $res = $this->client->deregister($deregister);
             
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logTransaction([
@@ -820,16 +820,6 @@ final class AllSecureService
                 Logger::logError('Deregister exception: ' . $e->getMessage(), ['exception' => get_class($e)], 'error');
             }
             return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
-        }
-    }
-
-    private function setTransactionValue($transaction, array $methodNames, $value): void
-    {
-        foreach ($methodNames as $methodName) {
-            if (method_exists($transaction, $methodName)) {
-                $transaction->{$methodName}($value);
-                return;
-            }
         }
     }
 
