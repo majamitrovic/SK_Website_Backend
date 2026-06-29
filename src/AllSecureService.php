@@ -8,6 +8,7 @@ use Exchange\Client\Schedule\ContinueSchedule;
 use Exchange\Client\Schedule\ScheduleWithTransaction;
 use Exchange\Client\StatusApi\StatusRequestData;
 use Exchange\Client\Transaction\Debit;
+use Exchange\Client\Transaction\Deregister;
 use Exchange\Client\Transaction\Result;
 
 final class AllSecureService
@@ -761,18 +762,47 @@ final class AllSecureService
 
     /**
      * Attempt to deregister a stored registration/card using the client library.
-     * Tries common method names on the client to remain compatible with different SDKs.
      */
     public function deregisterRegistration(string $merchantTransactionId, string $registrationUuid): array
     {
         try {
-            $res = $this->client->deregister($merchantTransactionId, $registrationUuid);
+            $deregister = new Deregister();
+            $deregister
+                ->setMerchantTransactionId($merchantTransactionId)
+                ->setRegistrationUuid($registrationUuid);
+            
+            $res = $this->client->deregister($deregister);
+            
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logTransaction([
+                    'type' => 'deregister_response',
+                    'merchantTransactionId' => $merchantTransactionId,
+                    'registrationUuid' => $registrationUuid,
+                    'response_type' => gettype($res),
+                    'response' => is_object($res) ? get_class($res) : $res,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
+            }
+            
             // If the SDK returns an object with ->isSuccess, try to normalise
             if (is_object($res) && method_exists($res, 'isSuccess')) {
-                return array(
+                $result = array(
                     'success' => $res->isSuccess(),
-                    'result' => $res,
+                    'uuid' => method_exists($res, 'getUuid') ? $res->getUuid() : null,
+                    'purchaseId' => method_exists($res, 'getPurchaseId') ? $res->getPurchaseId() : null,
+                    'returnType' => method_exists($res, 'getReturnType') ? $res->getReturnType() : null,
+                    'paymentMethod' => method_exists($res, 'getPaymentMethod') ? $res->getPaymentMethod() : null,
                 );
+                
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logTransaction([
+                        'type' => 'deregister_normalized',
+                        'result' => $result,
+                        'timestamp' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                
+                return $result;
             }
 
             // If boolean or array returned, normalise
@@ -786,6 +816,9 @@ final class AllSecureService
 
             return array('success' => true, 'result' => $res);
         } catch (\Throwable $e) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError('Deregister exception: ' . $e->getMessage(), ['exception' => get_class($e)], 'error');
+            }
             return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
         }
     }

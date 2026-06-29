@@ -78,6 +78,12 @@ try {
         'timestamp' => date('Y-m-d H:i:s'),
     ]);
 
+    if (!($result['success'] ?? false)) {
+        http_response_code(500);
+        echo 'ERROR: Deregistration failed: ' . ($result['errorMessage'] ?? 'Unknown error');
+        exit;
+    }
+
     PaymentStorage::markTokenUsed($token, ['merchantTransactionId' => $merchantTransactionId, 'registrationUuid' => $registrationUuid]);
 
     echo '<!doctype html><html><head><meta charset="utf-8"><title>Card deregistered</title></head><body><h1>Card deregistered</h1><p>Your card has been deregistered successfully.</p></body></html>';
