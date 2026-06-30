@@ -621,12 +621,12 @@ final class AllSecureService
             try {
                 $recurringStartDateTime = $recurringStartDateTimeRaw !== ''
                     ? new \DateTime($recurringStartDateTimeRaw)
-                    : new \DateTime('+1 hours');
+                    : new \DateTime('+25 hours');
 
                 $minimumStart = new \DateTime('+24 hours');
-             //   if ($recurringStartDateTime <= $minimumStart) {
-                //    $errors['recurring_start_datetime'] = 'First recurring charge must be more than 24 hours after the initial payment.';
-             //   }
+                if ($recurringStartDateTime <= $minimumStart) {
+                    $errors['recurring_start_datetime'] = 'First recurring charge must be more than 24 hours after the initial payment.';
+               }
             } catch (\Exception $exception) {
                 $errors['recurring_start_datetime'] = 'Enter a valid first recurring charge date/time.';
             }
