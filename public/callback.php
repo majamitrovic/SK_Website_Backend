@@ -153,12 +153,12 @@ Logger::logTransaction([
 
     // If this is a scheduled transaction, create a deregister link for removing stored card
     if (!empty($scheduleId)) {
-        $registrationUuId = $callbackData['uuid'] ?? null;
+      //  $registrationUuId = $callbackData['uuid'] ?? null;
 
-        if (empty($registrationUuId)) {
+      //  if (empty($registrationUuId)) {
             $scheduleDetails = $service->showSchedule($scheduleId);
             $registrationUuId = $scheduleDetails['registrationUuid'] ?? null;
-        }
+      //  }
 
         if (!empty($registrationUuId)) {
             try {
