@@ -31,14 +31,20 @@ if ($decoded === false) {
     exit;
 }
 
-$parts = explode('|', $decoded);
-if (count($parts) < 4) {
+$parts = explode('|', $decoded, 5);
+if (count($parts) < 5) {
     http_response_code(400);
     echo 'Invalid token format';
     exit;
 }
 
-list($merchantTransactionId, $scheduleId, $expires, $signature) = $parts;
+list($tokenType, $merchantTransactionId, $scheduleId, $expires, $signature) = $parts;
+
+if ($tokenType !== 'cancel') {
+    http_response_code(400);
+    echo 'Invalid token type';
+    exit;
+}
 
 if ((int)$expires < time()) {
     http_response_code(400);
@@ -47,7 +53,7 @@ if ((int)$expires < time()) {
 }
 
 $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
-$payload = $merchantTransactionId . '|' . $scheduleId . '|' . $expires;
+$payload = $tokenType . '|' . $merchantTransactionId . '|' . $scheduleId . '|' . $expires;
 $expected = hash_hmac('sha256', $payload, $secret);
 if (!hash_equals($expected, $signature)) {
     http_response_code(400);
@@ -76,13 +82,31 @@ try {
 Logger::logTransaction([
 'type' => 'schedule_parsed',
 'request_id' => $requestId,
-'raw_callback' => $schedule, 
-'raw_merchant_data' => $merchantData,
+'raw_schedule' => $schedule,
 'timestamp' => date('Y-m-d H:i:s'),
 ]);
 }
     // Attempt cancellation
     $cancelResult = $service->cancelSchedule($scheduleId);
+    if (!$cancelResult['success']) {
+        $alreadyCancelled = false;
+        $oldStatus = strtoupper((string) ($cancelResult['oldStatus'] ?? ''));
+        $newStatus = strtoupper((string) ($cancelResult['newStatus'] ?? ''));
+        $errorMessage = (string) ($cancelResult['errorMessage'] ?? '');
+
+        if (in_array($oldStatus, array('CANCELLED', 'CANCELED', 'INACTIVE', 'DELETED'), true)
+            || in_array($newStatus, array('CANCELLED', 'CANCELED', 'INACTIVE', 'DELETED'), true)
+            || preg_match('/already.*cancel|already.*deregister|already.*inactive/i', $errorMessage)
+        ) {
+            $alreadyCancelled = true;
+        }
+
+        if ($alreadyCancelled) {
+            $cancelResult['success'] = true;
+            $cancelResult['errorMessage'] = null;
+            $cancelResult['errorCode'] = null;
+        }
+    }
 
     // Persist cancellation result
     PaymentStorage::append('cancel_results.jsonl', [
