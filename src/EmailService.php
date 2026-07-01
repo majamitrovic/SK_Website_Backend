@@ -136,7 +136,7 @@ final class EmailService
             if (Config::bool('ENABLE_LOGGING')) {
                 Logger::logError(
                     'Cancellation confirmation email not sent - no email address',
-                    ['payment_id' => $result['merchantTransactionId'] ?? null],
+                    ['payment_id' => $payment['merchantTransactionId'] ?? null],
                     'warning'
                 );
             }
@@ -153,7 +153,7 @@ final class EmailService
         }
 
         $sent = self::send($to, $subject, $body, 'cancellation_confirmation', [
-            'payment_id' => $result['merchantTransactionId'] ?? null,
+            'payment_id' => $payment['merchantTransactionId'] ?? null,
             'customer_email' => $to,
             'cancellation_success' => !empty($result['success']) || (isset($result['result']) && in_array(strtoupper($result['result']), ['SUCCESS','OK','TRUE'], true)),
             'schedule_id' => $result['scheduleId'] ?? $result['scheduledData']['scheduleId'] ?? null,

@@ -8,6 +8,7 @@ use Exchange\Client\Schedule\ContinueSchedule;
 use Exchange\Client\Schedule\ScheduleWithTransaction;
 use Exchange\Client\StatusApi\StatusRequestData;
 use Exchange\Client\Transaction\Debit;
+use Exchange\Client\Transaction\Deregister;
 use Exchange\Client\Transaction\Result;
 
 final class AllSecureService
@@ -108,10 +109,8 @@ final class AllSecureService
         }
 
         $result = $this->client->debit($debit);
-        $gatewayReferenceId = $result->getReferenceId();
         return array(
             'merchantTransactionId' => $merchantTransactionId,
-            'gatewayReferenceId' => $gatewayReferenceId,
             'amount' => $payment['amount'],
             'currency' => $payment['currency'],
             'recurring' => array(
@@ -283,6 +282,7 @@ final class AllSecureService
         $scheduleData = method_exists($result, 'getScheduleData')
         ? $result->getScheduleData()
         : null;
+        $extraData = $result->getExtraData();
         return array(
             'success' => $result->isSuccess(),
             'returnType' => $result->getReturnType(),
@@ -292,18 +292,19 @@ final class AllSecureService
             'paymentMethod' => $result->getPaymentMethod(),
             'amount' => method_exists($result, 'getAmount') ? $result->getAmount() : null,
             'currency' => method_exists($result, 'getCurrency') ? $result->getCurrency() : null,
+            'authCode' => $extraData['authCode'] ?? $result->getUuid(),
             'card' => $cardData,
             'threeDSecure' => $threeDSecure,
             'eci' => $eci,
             'bin' => $binData,
-            'extraData' => $result->getExtraData(),
+            'extraData' => $extraData,
             'redirectType' => $result->getRedirectType(),
             'redirectUrl' => $result->getRedirectUrl(),
             'htmlContent' => $result->getHtmlContent(),
             'scheduleId' => $scheduleData ? ($result->getScheduleId() ?? null) : null,
             'scheduleStatus' => $scheduleData ? ($result->getScheduleStatus() ?? null) : null,
             'scheduledAt' => $scheduleData ? ($result->getScheduledAt() ?? null) : null,
-            'errors' => self::errorsToArray($result->getErrors()),
+            'errors' => ErrorService::formatForApi($result->getErrors()),
         );
     }
 
@@ -411,6 +412,7 @@ final class AllSecureService
             }
         }
         
+        $extraData = $callback->getExtraData();
         return array(
             'result' => $callback->getResult(),
             'uuid' => $callback->getUuid(),
@@ -426,18 +428,20 @@ final class AllSecureService
             'threeDSecure' => $threeDSecure,
             'eci' => $eci,
             'bin' => $binData,
-            'extraData' => $callback->getExtraData(),
+            'extraData' => $extraData,
             'scheduledData' => $scheduledData,
             'errorMessage' => $callback->getErrorMessage(),
             'errorCode' => $callback->getErrorCode(),
             'adapterMessage' => $callback->getAdapterMessage(),
             'adapterCode' => $callback->getAdapterCode(),
-            'errors' => self::errorsToArray($callback->getErrors()),
+            'errors' => ErrorService::formatForApi($callback->getErrors()),
         );
     }
 
     public static function statusResultToArray($status)
     {
+        
+
         $cardData = array();
         $returnData = null;
         try {
@@ -523,6 +527,7 @@ final class AllSecureService
             }
         }
         
+        $extraData = $status->getExtraData();
         return array(
             'success' => $status->isSuccess(),
             'transactionStatus' => $status->getTransactionStatus(),
@@ -533,7 +538,7 @@ final class AllSecureService
             'paymentMethod' => $status->getPaymentMethod(),
             'amount' => $status->getAmount(),
             'currency' => $status->getCurrency(),
-            'authCode' => method_exists($status, 'getAuthCode') ? $status->getAuthCode() : $status->getUuid(),
+            'authCode' => $extraData['authCode'] ?? $status->getUuid(),
             'merchantMetaData' => $status->getMerchantMetaData(),
             'customer' => $customerData,
             'card' => $cardData,
@@ -542,9 +547,7 @@ final class AllSecureService
             'bin' => $binData,
             'incomingSettlementState' => $status->getIncomingSettlementState(),
             'schedules' => self::scheduleResultDataListToArray($status->getSchedules()),
-            'errorMessage' => $status->getErrorMessage(),
-            'errorCode' => $status->getErrorCode(),
-            'errors' => self::errorsToArray($status->getErrors()),
+            'errors' => ErrorService::formatForApi($status->getErrors()),
         );
     }
 
@@ -623,7 +626,7 @@ final class AllSecureService
                 $minimumStart = new \DateTime('+24 hours');
                 if ($recurringStartDateTime <= $minimumStart) {
                     $errors['recurring_start_datetime'] = 'First recurring charge must be more than 24 hours after the initial payment.';
-                }
+               }
             } catch (\Exception $exception) {
                 $errors['recurring_start_datetime'] = 'Enter a valid first recurring charge date/time.';
             }
@@ -703,41 +706,33 @@ final class AllSecureService
         return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null;
     }
 
-    private static function errorsToArray(array $errors)
+   
+    /**
+     * Create a time-limited token for cancel links used in emails.
+     * Token format: cancel|merchantTransactionId|scheduleId|expires|signature
+     */
+    public function createCancelToken(string $merchantTransactionId, string $scheduleId, int $ttlSeconds = 86400): string
     {
-        $data = array();
+        return $this->createActionToken('cancel', array($merchantTransactionId, $scheduleId), $ttlSeconds);
+    }
 
-        foreach ($errors as $error) {
-            $data[] = array(
-                'message' => $error->getMessage(),
-                'code' => $error->getCode(),
-                'adapterMessage' => $error->getAdapterMessage(),
-                'adapterCode' => $error->getAdapterCode(),
-            );
-        }
-
-        return $data;
+    /**
+     * Create a full URL to the public cancellation endpoint including token.
+     */
+    public function createCancelUrl(string $merchantTransactionId, string $scheduleId, int $ttlSeconds = 86400): string
+    {
+        $token = $this->createCancelToken($merchantTransactionId, $scheduleId, $ttlSeconds);
+        $path = '/cancel_subscription.php';
+        return $this->url($path, array('token' => $token));
     }
 
     /**
      * Create a time-limited token for deregister links used in emails.
-     * Token format: merchantTransactionId|registrationUuid|expires|signature
+     * Token format: deregister|merchantTransactionId|registrationUuid|expires|signature
      */
     public function createDeregisterToken(string $merchantTransactionId, string $registrationUuid, int $ttlSeconds = 86400): string
     {
-        $expires = time() + $ttlSeconds;
-        $payload = $merchantTransactionId . '|' . $registrationUuid . '|' . $expires;
-        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
-        $signature = hash_hmac('sha256', $payload, $secret);
-
-        $token = $payload . '|' . $signature;
-
-        // base64url encode and strip padding
-        $b64 = base64_encode($token);
-        $b64 = rtrim($b64, '=');
-        $b64 = str_replace(['+','/'], ['-','_'], $b64);
-
-        return $b64;
+        return $this->createActionToken('deregister', array($merchantTransactionId, $registrationUuid), $ttlSeconds);
     }
 
     /**
@@ -750,43 +745,83 @@ final class AllSecureService
         return $this->url($path, array('token' => $token));
     }
 
+    private function createActionToken(string $action, array $parts, int $ttlSeconds): string
+    {
+        $expires = time() + $ttlSeconds;
+        $payload = $action . '|' . implode('|', $parts) . '|' . $expires;
+        $secret = Config::get('ALLSECURE_CONNECTOR_SHARED_SECRET');
+        $signature = hash_hmac('sha256', $payload, $secret);
+
+        return $this->base64UrlEncode($payload . '|' . $signature);
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
     /**
      * Attempt to deregister a stored registration/card using the client library.
-     * Tries common method names on the client to remain compatible with different SDKs.
      */
     public function deregisterRegistration(string $registrationUuid): array
     {
-        $methodsToTry = array('deregisterRegistration', 'deregister', 'deleteRegistration', 'removeRegistration');
-
-        foreach ($methodsToTry as $m) {
-            if (method_exists($this->client, $m)) {
-                try {
-                    $res = $this->client->{$m}($registrationUuid);
-                    // If the SDK returns an object with ->isSuccess, try to normalise
-                    if (is_object($res) && method_exists($res, 'isSuccess')) {
-                        return array(
-                            'success' => $res->isSuccess(),
-                            'result' => $res,
-                        );
-                    }
-
-                    // If boolean or array returned, normalise
-                    if (is_bool($res)) {
-                        return array('success' => $res);
-                    }
-
-                    if (is_array($res)) {
-                        return array_merge(array('success' => true), $res);
-                    }
-
-                    return array('success' => true, 'result' => $res);
-                } catch (\Throwable $e) {
-                    return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
-                }
+        try {
+            $deregister = new Deregister();
+            $newMerchantTransactionId = 'deregister-' . $registrationUuid . '-' . time();
+            $deregister
+                ->setMerchantTransactionId($newMerchantTransactionId)
+                ->setReferenceUuid($registrationUuid);
+            
+            $res = $this->client->deregister($deregister);
+            
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logTransaction([
+                    'type' => 'deregister_response',
+                    'deregisterMerchantTransactionId' => $newMerchantTransactionId,
+                    'registrationUuid' => $registrationUuid,
+                    'response_type' => gettype($res),
+                    'response' => is_object($res) ? get_class($res) : $res,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                ]);
             }
-        }
+            
+            // If the SDK returns an object with ->isSuccess, try to normalise
+            if (is_object($res) && method_exists($res, 'isSuccess')) {
+                $result = array(
+                    'success' => $res->isSuccess(),
+                    'uuid' => method_exists($res, 'getUuid') ? $res->getUuid() : null,
+                    'purchaseId' => method_exists($res, 'getPurchaseId') ? $res->getPurchaseId() : null,
+                    'returnType' => method_exists($res, 'getReturnType') ? $res->getReturnType() : null,
+                    'paymentMethod' => method_exists($res, 'getPaymentMethod') ? $res->getPaymentMethod() : null,
+                );
+                
+                if (Config::bool('ENABLE_LOGGING')) {
+                    Logger::logTransaction([
+                        'type' => 'deregister_normalized',
+                        'result' => $result,
+                        'timestamp' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                
+                return $result;
+            }
 
-        return array('success' => false, 'errorMessage' => 'Deregister method not available on client');
+            // If boolean or array returned, normalise
+            if (is_bool($res)) {
+                return array('success' => $res);
+            }
+
+            if (is_array($res)) {
+                return array_merge(array('success' => true), $res);
+            }
+
+            return array('success' => true, 'result' => $res);
+        } catch (\Throwable $e) {
+            if (Config::bool('ENABLE_LOGGING')) {
+                Logger::logError('Deregister exception: ' . $e->getMessage(), ['exception' => get_class($e)], 'error');
+            }
+            return array('success' => false, 'errorMessage' => $e->getMessage(), 'exception' => get_class($e));
+        }
     }
 
     private static function scheduleResultDataListToArray(array $schedules)
@@ -798,7 +833,10 @@ final class AllSecureService
             $data[] = array(
                 'scheduleId' => $schedule->getScheduleId(),
                 'scheduleStatus' => $schedule->getScheduleStatus(),
-                'scheduledAt' => $scheduledAt instanceof \DateTime ? $scheduledAt->format(\DateTime::ATOM) : $scheduledAt,
+                'scheduledAt' => $scheduledAt  ? $scheduledAt
+                  ->setTimezone(new \DateTimeZone('Europe/Belgrade'))
+                  ->format('Y-m-d H:i:s') : null
+  
             );
         }
 
