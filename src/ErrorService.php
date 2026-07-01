@@ -133,9 +133,9 @@ final class ErrorService
     private static function getOriginalMessage($error): string
     {
         if (is_object($error)) {
-            return method_exists($error, 'getMessage') ? $error->getMessage() : '';
+            return self::normalizeStringValue(method_exists($error, 'getMessage') ? $error->getMessage() : '');
         }
-        return $error['originalMessage'] ?? $error['message'] ?? '';
+        return self::normalizeStringValue($error['originalMessage'] ?? $error['message'] ?? '');
     }
 
     /**
@@ -144,9 +144,9 @@ final class ErrorService
     private static function getAdapterMessage($error): string
     {
         if (is_object($error)) {
-            return method_exists($error, 'getAdapterMessage') ? $error->getAdapterMessage() : '';
+            return self::normalizeStringValue(method_exists($error, 'getAdapterMessage') ? $error->getAdapterMessage() : '');
         }
-        return $error['adapterMessage'] ?? '';
+        return self::normalizeStringValue($error['adapterMessage'] ?? '');
     }
 
     /**
@@ -155,8 +155,16 @@ final class ErrorService
     private static function getAdapterCode($error): string
     {
         if (is_object($error)) {
-            return method_exists($error, 'getAdapterCode') ? $error->getAdapterCode() : '';
+            return self::normalizeStringValue(method_exists($error, 'getAdapterCode') ? $error->getAdapterCode() : '');
         }
-        return $error['adapterCode'] ?? '';
+        return self::normalizeStringValue($error['adapterCode'] ?? '');
+    }
+
+    /**
+     * Normalize values to a safe string
+     */
+    private static function normalizeStringValue($value): string
+    {
+        return is_string($value) ? $value : (string) ($value ?? '');
     }
 }
