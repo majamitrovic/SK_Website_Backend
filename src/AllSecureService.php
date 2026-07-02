@@ -65,7 +65,7 @@ final class AllSecureService
             ->setBillingAddress1($payment['billing_address'])
             ->setBillingCity($payment['billing_city'])
             ->setBillingPostcode($payment['billing_postcode'])
-            ->setBillingState($payment['billing_state'])
+            //->setBillingState($payment['billing_state'])
             ->setBillingCountry($payment['billing_country'])
             ->setIpAddress($this->clientIp());
 
@@ -103,10 +103,10 @@ final class AllSecureService
                 ->setTransactionIndicator(Debit::TRANSACTION_INDICATOR_INITIAL);
         }
 
-        $threeDSecure = strtoupper(trim((string) Config::get('ALLSECURE_3DSECURE', 'MANDATORY')));
-        if ($threeDSecure !== '') {
-            $debit->addExtraData('3dsecure', $threeDSecure);
-        }
+        // $threeDSecure = strtoupper(trim((string) Config::get('ALLSECURE_3DSECURE', 'MANDATORY')));
+        // if ($threeDSecure !== '') {
+        //     $debit->addExtraData('3dsecure', $threeDSecure);
+        // }
 
         $result = $this->client->debit($debit);
         return array(
